@@ -9,6 +9,7 @@ export default function AuthCallback() {
   const [message, setMessage] = useState("Verificando enlace mágico...");
 
   useEffect(() => {
+    console.log("✅ AuthCallback page mounted");
     const handleMagicLink = async () => {
       const hash = window.location.hash;
 
