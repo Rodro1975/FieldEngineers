@@ -13,6 +13,7 @@ export default function LoginPage() {
       email,
       options: {
         emailRedirectTo: "https://field-engineers.vercel.app/auth/callback",
+        shouldCreateUser: true,
       },
     });
 

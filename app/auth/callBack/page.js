@@ -8,17 +8,17 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const processMagicLink = async () => {
-      const { error } = await supabase.auth.getSessionFromUrl({
-        storeSession: true,
-      });
+      const { data, error } = await supabase.auth.exchangeCodeForSession();
+
       if (error) {
         console.error("Error verificando enlace mágico:", error.message);
         router.push("/?error=auth");
       } else {
-        // Si todo va bien, redirige al dashboard
+        // Todo correcto, redirige al dashboard
         router.push("/dashboard");
       }
     };
+
     processMagicLink();
   }, [router]);
 
