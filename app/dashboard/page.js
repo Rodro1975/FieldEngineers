@@ -1,17 +1,37 @@
 "use client";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 import ShowEngineers from "@/components/ShowEngineers";
 
 export default function Dashboard() {
   const router = useRouter();
+  const [userEmail, setUserEmail] = useState("");
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        router.push("/login"); // Redirige si no hay sesión
+      } else {
+        setUserEmail(user.email);
+      }
+    };
+
+    fetchUser();
+  }, [router]);
 
   return (
     <div className="min-h-screen flex bg-white text-black">
       {/* Sidebar */}
       <aside className="w-56 border-r border-black flex flex-col p-4">
         <h2 className="text-xl font-bold mb-8 tracking-tight">Bienvenido</h2>
-        <p className="text-sm mb-8 tracking-tight">
-          Aquí el correo de quien se firmó
+        <p className="text-sm mb-8 tracking-tight break-words">
+          {userEmail || "Cargando..."}
         </p>
         <nav className="flex flex-col gap-4">
           <button className="text-left font-semibold">Inicio</button>
@@ -50,7 +70,7 @@ export default function Dashboard() {
           className="border border-black rounded px-3 py-2 mb-6 w-full"
         />
 
-        {/* Aquí sustituimos la tabla estática por nuestro componente */}
+        {/* Lista de ingenieros */}
         <ShowEngineers />
       </main>
     </div>
