@@ -18,7 +18,7 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setMessage(`Error: ${error.message}`);
+      setMessage(`❌ Error: ${error.message}`);
     } else {
       setMessage("📬 Revisa tu correo para el enlace mágico");
       setEmail("");
@@ -38,6 +38,7 @@ export default function LoginPage() {
           className="border px-3 py-2 rounded"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
         />
         <button
           type="submit"
@@ -45,7 +46,15 @@ export default function LoginPage() {
         >
           Enviar enlace mágico
         </button>
-        {message && <p className="text-sm text-green-600">{message}</p>}
+        {message && (
+          <p
+            className={`text-sm ${
+              message.startsWith("❌") ? "text-red-600" : "text-green-600"
+            }`}
+          >
+            {message}
+          </p>
+        )}
       </form>
     </main>
   );

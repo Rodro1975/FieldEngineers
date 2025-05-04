@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -7,6 +8,7 @@ import ShowEngineers from "@/components/ShowEngineers";
 export default function Dashboard() {
   const router = useRouter();
   const [userEmail, setUserEmail] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -16,23 +18,30 @@ export default function Dashboard() {
       } = await supabase.auth.getSession();
 
       if (error || !session) {
-        router.push("/login");
+        router.replace("/login");
       } else {
         setUserEmail(session.user.email);
+        setLoading(false);
       }
     };
 
     checkSession();
   }, [router]);
 
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p>Cargando sesión...</p>
+      </main>
+    );
+  }
+
   return (
     <div className="min-h-screen flex bg-white text-black">
       {/* Sidebar */}
       <aside className="w-56 border-r border-black flex flex-col p-4">
         <h2 className="text-xl font-bold mb-8 tracking-tight">Bienvenido</h2>
-        <p className="text-sm mb-8 tracking-tight break-words">
-          {userEmail || "Cargando..."}
-        </p>
+        <p className="text-sm mb-8 tracking-tight break-words">{userEmail}</p>
         <nav className="flex flex-col gap-4">
           <button className="text-left font-semibold">Inicio</button>
           <button className="text-left">Ingenieros</button>
