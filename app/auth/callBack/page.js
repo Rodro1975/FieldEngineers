@@ -19,6 +19,7 @@ export default function AuthCallback() {
 
       const params = new URLSearchParams(hash.substring(1));
 
+      // Comprobar si hay un error en el enlace mágico
       if (params.get("error")) {
         const errorDescription =
           params.get("error_description") || "Error desconocido";
@@ -30,15 +31,18 @@ export default function AuthCallback() {
         return;
       }
 
+      // Extraer los tokens de la URL
       const access_token = params.get("access_token");
       const refresh_token = params.get("refresh_token");
       const expires_at = params.get("expires_at");
 
+      // Validar que los tokens estén presentes
       if (!access_token || !refresh_token || !expires_at) {
         setMessage("Faltan tokens en la URL de autenticación.");
         return;
       }
 
+      // Establecer la sesión en Supabase
       const { error } = await supabase.auth.setSession({
         access_token,
         refresh_token,
