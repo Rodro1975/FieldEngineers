@@ -8,12 +8,19 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const { error } = await supabase.auth.signInWithOtp({ email });
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: "https://field-engineers.vercel.app/auth/callback",
+      },
+    });
+
     if (error) {
       setMessage(`Error: ${error.message}`);
     } else {
       setMessage("📬 Revisa tu correo para el enlace mágico");
-      setEmail(""); // 👈 Esto limpia el campo
+      setEmail("");
     }
   };
 
