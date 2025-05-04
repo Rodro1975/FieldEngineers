@@ -9,20 +9,20 @@ export default function Dashboard() {
   const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const checkSession = async () => {
       const {
-        data: { user },
+        data: { session },
         error,
-      } = await supabase.auth.getUser();
+      } = await supabase.auth.getSession();
 
-      if (error || !user) {
-        router.push("/login"); // Redirige si no hay sesión
+      if (error || !session) {
+        router.push("/login");
       } else {
-        setUserEmail(user.email);
+        setUserEmail(session.user.email);
       }
     };
 
-    fetchUser();
+    checkSession();
   }, [router]);
 
   return (
