@@ -8,8 +8,9 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const processMagicLink = async () => {
-      const { error } = await supabase.auth.getSessionFromUrl();
-
+      const { error } = await supabase.auth.getSessionFromUrl({
+        storeSession: true,
+      });
       if (error) {
         console.error("Error verificando enlace mágico:", error.message);
         router.push("/?error=auth");
@@ -18,7 +19,6 @@ export default function AuthCallback() {
         router.push("/dashboard");
       }
     };
-
     processMagicLink();
   }, [router]);
 
