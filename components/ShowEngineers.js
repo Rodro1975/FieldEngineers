@@ -1,11 +1,10 @@
-// components/ShowEngineers.js
 "use client";
 
 import { useEffect, useState } from "react";
 import supabase from "@/lib/supabaseClient";
 import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 
-export default function MostrarIngenieros() {
+export default function MostrarIngenieros({ refreshSignal = null }) {
   const [ingenieros, setIngenieros] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -52,7 +51,7 @@ export default function MostrarIngenieros() {
 
     fetchData(debouncedSearch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch]);
+  }, [debouncedSearch, refreshSignal]);
 
   const handleSearchChange = (e) => setSearch(e.target.value);
   const handleClear = () => setSearch("");
