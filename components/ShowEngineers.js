@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import supabase from "@/lib/supabaseClient";
 import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function MostrarIngenieros({ refreshSignal = null }) {
   const [ingenieros, setIngenieros] = useState([]);
@@ -38,10 +39,7 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
         const { data, error } = await query;
         if (error) throw error;
 
-        // Solo actualiza si hay cambios
-        if (JSON.stringify(data) !== JSON.stringify(ingenieros)) {
-          setIngenieros(data);
-        }
+        setIngenieros(data); // ya no comparas con ingenieros
       } catch (err) {
         setError(err.message);
       } finally {
@@ -50,14 +48,57 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
     }
 
     fetchData(debouncedSearch);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, refreshSignal]);
+  }, [debouncedSearch, refreshSignal]); // ingenieros ya no es necesario aquí
 
   const handleSearchChange = (e) => setSearch(e.target.value);
   const handleClear = () => setSearch("");
 
+  const confirmDelete = (id) => {
+    toast.custom((t) => (
+      <div
+        className={`bg-white border border-gray-300 shadow-md rounded-lg px-6 py-4 flex flex-col items-center gap-3 transition-all ${
+          t.visible ? "animate-enter" : "animate-leave"
+        }`}
+      >
+        <p className="text-center text-sm text-gray-700">
+          ¿Estás seguro de que deseas eliminar este ingeniero?
+        </p>
+        <div className="flex gap-4">
+          <button
+            onClick={() => {
+              handleDelete(id);
+              toast.dismiss(t.id);
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded"
+          >
+            Sí, eliminar
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-1 rounded"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    ));
+  };
+
+  const handleDelete = async (id) => {
+    const { error } = await supabase.from("engineers").delete().eq("id", id);
+
+    if (error) {
+      toast.error("Error al eliminar: " + error.message);
+    } else {
+      setIngenieros((prev) => prev.filter((ing) => ing.id !== id));
+      toast.success("Ingeniero eliminado");
+    }
+  };
+
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-4rem)]">
+      <Toaster position="top-center" />
+
       {/* Búsqueda */}
       <div className="mb-2 flex items-center gap-2 max-w-full">
         <input
@@ -162,7 +203,7 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
                     <td className="p-3 text-sm text-gray-600">
                       {ing.telephone || "-"}
                     </td>
-                    <td className="p-3 flex  gap-2">
+                    <td className="p-3 flex gap-2">
                       <button
                         className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition"
                         title="Editar"
@@ -171,6 +212,7 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
                         <span className="hidden sm:inline">Editar</span>
                       </button>
                       <button
+                        onClick={() => confirmDelete(ing.id)}
                         className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition"
                         title="Eliminar"
                       >
