@@ -1,6 +1,6 @@
-// components/Sidebar.js
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -17,49 +17,51 @@ export default function Sidebar({ userEmail }) {
   const router = useRouter();
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col sticky top-0 h-screen">
       <div className="p-6 border-b">
         <p className="text-sm text-gray-500">Bienvenido</p>
         <p className="font-semibold break-words">{userEmail}</p>
       </div>
-      <nav className="flex-1 p-4 space-y-2">
-        <button
-          onClick={() => router.push("/dashboard")}
+
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        <Link
+          href="/dashboard"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaHome /> Inicio
-        </button>
-        <button
-          onClick={() => router.push("/dashboard/engineers")}
+        </Link>
+        <Link
+          href="/dashboard/engineers"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaUsers /> Ingenieros
-        </button>
-        <button
-          onClick={() => router.push("/projects")}
+        </Link>
+        <Link
+          href="/projects"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaProjectDiagram /> Proyectos
-        </button>
-        <button
-          onClick={() => router.push("/assignments")}
+        </Link>
+        <Link
+          href="/assignments"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaTasks /> Asignaciones
-        </button>
-        <button
-          onClick={() => router.push("/reports")}
+        </Link>
+        <Link
+          href="/reports"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaFileAlt /> Reportes
-        </button>
-        <button
-          onClick={() => router.push("/settings")}
+        </Link>
+        <Link
+          href="/settings"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaCog /> Configuración
-        </button>
+        </Link>
       </nav>
+
       <div className="p-4 border-t">
         <button
           onClick={async () => {
