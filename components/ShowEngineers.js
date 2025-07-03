@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import supabase from "@/lib/supabaseClient";
 import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
+import EditEngineer from "@/components/EditEngineer";
+import Modal from "@/components/Modal";
 
 export default function MostrarIngenieros({ refreshSignal = null }) {
   const [ingenieros, setIngenieros] = useState([]);
@@ -11,8 +13,9 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [engineerToEdit, setEngineerToEdit] = useState(null);
 
-  // Debounce de búsqueda (300ms)
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search.trim());
@@ -20,7 +23,6 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
     return () => clearTimeout(handler);
   }, [search]);
 
-  // Obtener ingenieros desde Supabase
   useEffect(() => {
     async function fetchData(filter = "") {
       setLoading(true);
@@ -39,7 +41,7 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
         const { data, error } = await query;
         if (error) throw error;
 
-        setIngenieros(data); // ya no comparas con ingenieros
+        setIngenieros(data);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -48,7 +50,7 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
     }
 
     fetchData(debouncedSearch);
-  }, [debouncedSearch, refreshSignal]); // ingenieros ya no es necesario aquí
+  }, [debouncedSearch, refreshSignal]);
 
   const handleSearchChange = (e) => setSearch(e.target.value);
   const handleClear = () => setSearch("");
@@ -86,13 +88,17 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
 
   const handleDelete = async (id) => {
     const { error } = await supabase.from("engineers").delete().eq("id", id);
-
     if (error) {
       toast.error("Error al eliminar: " + error.message);
     } else {
       setIngenieros((prev) => prev.filter((ing) => ing.id !== id));
       toast.success("Ingeniero eliminado");
     }
+  };
+
+  const handleCloseModal = () => {
+    setShowEditModal(false);
+    setEngineerToEdit(null);
   };
 
   return (
@@ -207,6 +213,10 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
                       <button
                         className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition"
                         title="Editar"
+                        onClick={() => {
+                          setEngineerToEdit(ing.id);
+                          setShowEditModal(true);
+                        }}
                       >
                         <FaEdit />
                         <span className="hidden sm:inline">Editar</span>
@@ -226,6 +236,19 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Modal de edición */}
+      {showEditModal && (
+        <Modal onClose={handleCloseModal}>
+          <EditEngineer
+            engineerId={engineerToEdit}
+            onClose={handleCloseModal}
+            onSuccess={() => {
+              handleCloseModal();
+            }}
+          />
+        </Modal>
       )}
     </div>
   );
