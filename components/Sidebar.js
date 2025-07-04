@@ -17,13 +17,13 @@ export default function Sidebar({ userEmail }) {
   const router = useRouter();
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col sticky top-0 h-screen">
+    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col sticky top-0 h-screen overflow-x-hidden box-border">
       <div className="p-6 border-b">
         <p className="text-sm text-gray-500">Bienvenido</p>
         <p className="font-semibold break-words">{userEmail}</p>
       </div>
 
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto overflow-x-hidden">
         <Link
           href="/dashboard"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
