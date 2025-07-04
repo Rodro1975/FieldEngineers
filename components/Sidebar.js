@@ -37,7 +37,7 @@ export default function Sidebar({ userEmail }) {
           <FaUsers /> Ingenieros
         </Link>
         <Link
-          href="/projects"
+          href="/dashboard/projects"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaProjectDiagram /> Proyectos

@@ -151,17 +151,23 @@ export default function RegisterEngineer({ onSuccess }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="max-w-lg mx-auto space-y-5 bg-white border border-black rounded-xl p-8 shadow-md"
+      className="max-w-lg mx-auto space-y-5 bg-white border border-gray-300 rounded-xl p-8 shadow-md"
       autoComplete="off"
     >
       <Toaster position="top-center" />
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-black">Registrar Ingeniero</h2>
+        <h2 className="text-2xl font-bold text-blue-700">
+          Registrar Ingeniero
+        </h2>
         <FaUserPlus className="text-blue-600 text-xl" />
       </div>
 
+      {/* Nombre completo */}
       <div>
-        <label htmlFor="full_name" className="block font-semibold mb-1">
+        <label
+          htmlFor="full_name"
+          className="block font-semibold mb-1 text-blue-700"
+        >
           Nombre completo <span className="text-red-600">*</span>
         </label>
         <input
@@ -172,18 +178,23 @@ export default function RegisterEngineer({ onSuccess }) {
           className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
             errors.full_name
               ? "border-red-500 focus:ring-red-300"
-              : "border-black focus:ring-blue-400"
+              : "border-gray-300 focus:ring-blue-400"
           }`}
           value={form.full_name}
           onChange={handleChange}
+          disabled={loading}
         />
         {errors.full_name && (
           <span className="text-xs text-red-600">{errors.full_name}</span>
         )}
       </div>
 
+      {/* Ciudad */}
       <div>
-        <label htmlFor="city" className="block font-semibold mb-1">
+        <label
+          htmlFor="city"
+          className="block font-semibold mb-1 text-blue-700"
+        >
           Ciudad <span className="text-red-600">*</span>
         </label>
         <input
@@ -194,18 +205,23 @@ export default function RegisterEngineer({ onSuccess }) {
           className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
             errors.city
               ? "border-red-500 focus:ring-red-300"
-              : "border-black focus:ring-blue-400"
+              : "border-gray-300 focus:ring-blue-400"
           }`}
           value={form.city}
           onChange={handleChange}
+          disabled={loading}
         />
         {errors.city && (
           <span className="text-xs text-red-600">{errors.city}</span>
         )}
       </div>
 
+      {/* Habilidades */}
       <div>
-        <label htmlFor="skills" className="block font-semibold mb-1">
+        <label
+          htmlFor="skills"
+          className="block font-semibold mb-1 text-blue-700"
+        >
           Habilidades (separadas por coma){" "}
           <span className="text-red-600">*</span>
         </label>
@@ -217,18 +233,23 @@ export default function RegisterEngineer({ onSuccess }) {
           className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
             errors.skills
               ? "border-red-500 focus:ring-red-300"
-              : "border-black focus:ring-blue-400"
+              : "border-gray-300 focus:ring-blue-400"
           }`}
           value={form.skills}
           onChange={handleChange}
+          disabled={loading}
         />
         {errors.skills && (
           <span className="text-xs text-red-600">{errors.skills}</span>
         )}
       </div>
 
+      {/* Nivel de inglés */}
       <div>
-        <label htmlFor="english_level" className="block font-semibold mb-1">
+        <label
+          htmlFor="english_level"
+          className="block font-semibold mb-1 text-blue-700"
+        >
           Nivel de inglés <span className="text-red-600">*</span>
         </label>
         <select
@@ -237,10 +258,11 @@ export default function RegisterEngineer({ onSuccess }) {
           className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
             errors.english_level
               ? "border-red-500 focus:ring-red-300"
-              : "border-black focus:ring-blue-400"
+              : "border-gray-300 focus:ring-blue-400"
           }`}
           value={form.english_level}
           onChange={handleChange}
+          disabled={loading}
         >
           {ENGLISH_LEVELS.map(({ value, label }) => (
             <option key={value} value={value}>
@@ -253,8 +275,12 @@ export default function RegisterEngineer({ onSuccess }) {
         )}
       </div>
 
+      {/* Correo electrónico */}
       <div>
-        <label htmlFor="email" className="block font-semibold mb-1">
+        <label
+          htmlFor="email"
+          className="block font-semibold mb-1 text-blue-700"
+        >
           Correo electrónico <span className="text-red-600">*</span>
         </label>
         <input
@@ -265,18 +291,23 @@ export default function RegisterEngineer({ onSuccess }) {
           className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
             errors.email
               ? "border-red-500 focus:ring-red-300"
-              : "border-black focus:ring-blue-400"
+              : "border-gray-300 focus:ring-blue-400"
           }`}
           value={form.email}
           onChange={handleChange}
+          disabled={loading}
         />
         {errors.email && (
           <span className="text-xs text-red-600">{errors.email}</span>
         )}
       </div>
 
+      {/* Teléfono */}
       <div>
-        <label htmlFor="telephone" className="block font-semibold mb-1">
+        <label
+          htmlFor="telephone"
+          className="block font-semibold mb-1 text-blue-700"
+        >
           Teléfono <span className="text-red-600">*</span>
         </label>
         <input
@@ -289,18 +320,23 @@ export default function RegisterEngineer({ onSuccess }) {
           className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
             errors.telephone
               ? "border-red-500 focus:ring-red-300"
-              : "border-black focus:ring-blue-400"
+              : "border-gray-300 focus:ring-blue-400"
           }`}
           value={form.telephone}
           onChange={handleChange}
+          disabled={loading}
         />
         {errors.telephone && (
           <span className="text-xs text-red-600">{errors.telephone}</span>
         )}
       </div>
 
+      {/* Proyecto asignado */}
       <div>
-        <label htmlFor="proyect" className="block font-semibold mb-1">
+        <label
+          htmlFor="proyect"
+          className="block font-semibold mb-1 text-blue-700"
+        >
           Proyecto asignado
         </label>
         <input
@@ -308,12 +344,14 @@ export default function RegisterEngineer({ onSuccess }) {
           name="proyect"
           type="text"
           placeholder="(Opcional)"
-          className="w-full border border-black rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
           value={form.proyect}
           onChange={handleChange}
+          disabled={loading}
         />
       </div>
 
+      {/* Disponible */}
       <div className="flex items-center gap-2">
         <input
           id="available"
@@ -321,17 +359,19 @@ export default function RegisterEngineer({ onSuccess }) {
           type="checkbox"
           checked={form.available}
           onChange={handleChange}
-          className="border border-black accent-blue-600"
+          className="border border-gray-300 accent-blue-600"
+          disabled={loading}
         />
-        <label htmlFor="available" className="font-semibold">
+        <label htmlFor="available" className="font-semibold text-blue-700">
           Disponible para asignación
         </label>
       </div>
 
+      {/* Botón */}
       <button
         type="submit"
         disabled={loading}
-        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold transition focus:outline-none focus:ring-2 focus:ring-blue-400 w-full"
+        className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 hover:from-blue-700 hover:via-blue-800 hover:to-blue-900 text-white font-semibold py-3 rounded-md shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed w-full"
       >
         <FaUserPlus />
         {loading ? "Registrando..." : "Registrar"}
