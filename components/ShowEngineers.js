@@ -3,13 +3,8 @@
 import { useEffect, useState } from "react";
 import supabase from "@/lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
-import {
-  FaEdit,
-  FaTrash,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaTimes,
-} from "react-icons/fa";
+import { FaEdit, FaTrash, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import EditEngineer from "./EditEngineer";
 
 export default function MostrarIngenieros({ refreshSignal = null }) {
   const [ingenieros, setIngenieros] = useState([]);
@@ -19,18 +14,6 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
   const [engineerToEdit, setEngineerToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({
-    full_name: "",
-    city: "",
-    skills: "",
-    english_level: "",
-    email: "",
-    telephone: "",
-    proyect: "",
-    available: false,
-  });
-  const [editErrors, setEditErrors] = useState({});
-  const [editLoading, setEditLoading] = useState(false);
 
   // Debounce para búsqueda
   useEffect(() => {
@@ -115,96 +98,24 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
     }
   };
 
-  // Abrir modal edición y cargar datos
+  // Abrir modal edición
   const openEditModal = (engineer) => {
     setEngineerToEdit(engineer);
-    setEditForm({
-      full_name: engineer.full_name || "",
-      city: engineer.city || "",
-      skills: (engineer.skills || []).join(", "),
-      english_level: engineer.english_level || "",
-      email: engineer.email || "",
-      telephone: engineer.telephone || "",
-      proyect: engineer.proyect || "",
-      available: engineer.available || false,
-    });
-    setEditErrors({});
     setShowEditModal(true);
   };
 
-  // Manejar cambios en formulario edición
-  const handleEditChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setEditForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-    setEditErrors((prev) => ({ ...prev, [name]: null }));
-  };
-
-  // Validar formulario edición
-  const validateEditForm = () => {
-    const errors = {};
-    if (!editForm.full_name.trim())
-      errors.full_name = "El nombre es obligatorio";
-    if (!editForm.city.trim()) errors.city = "La ciudad es obligatoria";
-    if (!editForm.skills.trim())
-      errors.skills = "Las habilidades son obligatorias";
-    if (!editForm.english_level)
-      errors.english_level = "Selecciona un nivel de inglés";
-    if (!editForm.email.trim()) errors.email = "El correo es obligatorio";
-    if (!editForm.telephone.trim())
-      errors.telephone = "El teléfono es obligatorio";
-    return errors;
-  };
-
-  // Guardar cambios edición
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    const errors = validateEditForm();
-    if (Object.keys(errors).length > 0) {
-      setEditErrors(errors);
-      return;
-    }
-    setEditLoading(true);
-    const { error } = await supabase
-      .from("engineers")
-      .update({
-        full_name: editForm.full_name.trim(),
-        city: editForm.city.trim(),
-        skills: editForm.skills.split(",").map((s) => s.trim()),
-        english_level: editForm.english_level,
-        email: editForm.email.trim(),
-        telephone: editForm.telephone.trim(),
-        proyect: editForm.proyect.trim() || null,
-        available: editForm.available,
-      })
-      .eq("id", engineerToEdit.id);
-    setEditLoading(false);
-    if (error) {
-      toast.error("Error al actualizar: " + error.message);
-    } else {
-      toast.success("Ingeniero actualizado");
-      setShowEditModal(false);
-      setEngineerToEdit(null);
-      // Actualizar lista localmente o disparar refresh desde padre
-      setIngenieros((prev) =>
-        prev.map((ing) =>
-          ing.id === engineerToEdit.id
-            ? {
-                ...ing,
-                ...editForm,
-                skills: editForm.skills.split(",").map((s) => s.trim()),
-              }
-            : ing
-        )
-      );
-    }
-  };
-
+  // Cerrar modal edición
   const handleCloseModal = () => {
     setShowEditModal(false);
     setEngineerToEdit(null);
+  };
+
+  // Actualizar lista localmente después de editar
+  const handleSuccess = () => {
+    setShowEditModal(false);
+    setEngineerToEdit(null);
+    // Refrescar lista
+    // Puedes llamar aquí a fetchData o usar un refreshSignal en el componente padre
   };
 
   return (
@@ -378,211 +289,12 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
       )}
 
       {/* Modal de edición */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <form
-            onSubmit={handleEditSubmit}
-            className="bg-white rounded-xl p-6 w-full max-w-lg shadow-md space-y-4 relative"
-          >
-            <button
-              type="button"
-              onClick={handleCloseModal}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-              aria-label="Cerrar modal"
-            >
-              <FaTimes size={20} />
-            </button>
-            <h3 className="text-xl font-bold text-blue-700 mb-2">
-              Editar Ingeniero
-            </h3>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Nombre completo <span className="text-red-600">*</span>
-              </label>
-              <input
-                name="full_name"
-                value={editForm.full_name}
-                onChange={handleEditChange}
-                className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
-                  editErrors.full_name
-                    ? "border-red-500 focus:ring-red-300"
-                    : "border-gray-300 focus:ring-blue-400"
-                }`}
-                required
-              />
-              {editErrors.full_name && (
-                <span className="text-xs text-red-600">
-                  {editErrors.full_name}
-                </span>
-              )}
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Ciudad <span className="text-red-600">*</span>
-              </label>
-              <input
-                name="city"
-                value={editForm.city}
-                onChange={handleEditChange}
-                className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
-                  editErrors.city
-                    ? "border-red-500 focus:ring-red-300"
-                    : "border-gray-300 focus:ring-blue-400"
-                }`}
-                required
-              />
-              {editErrors.city && (
-                <span className="text-xs text-red-600">{editErrors.city}</span>
-              )}
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Habilidades (separadas por coma){" "}
-                <span className="text-red-600">*</span>
-              </label>
-              <input
-                name="skills"
-                value={editForm.skills}
-                onChange={handleEditChange}
-                className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
-                  editErrors.skills
-                    ? "border-red-500 focus:ring-red-300"
-                    : "border-gray-300 focus:ring-blue-400"
-                }`}
-                required
-              />
-              {editErrors.skills && (
-                <span className="text-xs text-red-600">
-                  {editErrors.skills}
-                </span>
-              )}
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Nivel de inglés <span className="text-red-600">*</span>
-              </label>
-              <select
-                name="english_level"
-                value={editForm.english_level}
-                onChange={handleEditChange}
-                className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
-                  editErrors.english_level
-                    ? "border-red-500 focus:ring-red-300"
-                    : "border-gray-300 focus:ring-blue-400"
-                }`}
-                required
-              >
-                <option value="">Selecciona nivel</option>
-                <option value="básico">Básico</option>
-                <option value="intermedio">Intermedio</option>
-                <option value="avanzado">Avanzado</option>
-                <option value="nativo">Nativo</option>
-              </select>
-              {editErrors.english_level && (
-                <span className="text-xs text-red-600">
-                  {editErrors.english_level}
-                </span>
-              )}
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Correo electrónico <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={editForm.email}
-                onChange={handleEditChange}
-                className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
-                  editErrors.email
-                    ? "border-red-500 focus:ring-red-300"
-                    : "border-gray-300 focus:ring-blue-400"
-                }`}
-                required
-              />
-              {editErrors.email && (
-                <span className="text-xs text-red-600">{editErrors.email}</span>
-              )}
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Teléfono <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="text"
-                name="telephone"
-                inputMode="numeric"
-                maxLength={10}
-                value={editForm.telephone}
-                onChange={handleEditChange}
-                className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
-                  editErrors.telephone
-                    ? "border-red-500 focus:ring-red-300"
-                    : "border-gray-300 focus:ring-blue-400"
-                }`}
-                required
-              />
-              {editErrors.telephone && (
-                <span className="text-xs text-red-600">
-                  {editErrors.telephone}
-                </span>
-              )}
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Proyecto asignado
-              </label>
-              <input
-                name="proyect"
-                value={editForm.proyect}
-                onChange={handleEditChange}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                id="available"
-                name="available"
-                type="checkbox"
-                checked={editForm.available}
-                onChange={handleEditChange}
-                className="border border-gray-300 accent-blue-600"
-              />
-              <label
-                htmlFor="available"
-                className="font-semibold text-blue-700"
-              >
-                Disponible para asignación
-              </label>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                type="button"
-                onClick={handleCloseModal}
-                className="px-4 py-2 rounded border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200"
-                disabled={editLoading}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={editLoading}
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 hover:from-blue-700 hover:via-blue-800 hover:to-blue-900 text-white font-semibold py-2 px-6 rounded-md shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {editLoading ? "Guardando..." : "Guardar"}
-              </button>
-            </div>
-          </form>
-        </div>
+      {showEditModal && engineerToEdit && (
+        <EditEngineer
+          engineer={engineerToEdit}
+          onClose={handleCloseModal}
+          onSuccess={handleSuccess}
+        />
       )}
     </div>
   );

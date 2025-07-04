@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import supabase from "@/lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
-import { FaEdit, FaTrash, FaTimes } from "react-icons/fa";
+import { FaEdit, FaTrash } from "react-icons/fa";
+import EditAssignments from "@/components/EditAssigments";
 
 export default function ShowAssignments({ refreshSignal = null }) {
   const [assignments, setAssignments] = useState([]);
@@ -11,17 +12,8 @@ export default function ShowAssignments({ refreshSignal = null }) {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  // Estados para edición
   const [showEditModal, setShowEditModal] = useState(false);
   const [assignmentToEdit, setAssignmentToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({
-    project_id: "",
-    engineer_id: "",
-    role: "",
-  });
-  const [editErrors, setEditErrors] = useState({});
-  const [editLoading, setEditLoading] = useState(false);
 
   // Debounce para búsqueda
   useEffect(() => {
@@ -71,11 +63,9 @@ export default function ShowAssignments({ refreshSignal = null }) {
     fetchAssignments(debouncedSearch);
   }, [debouncedSearch, refreshSignal]);
 
-  // Manejo de búsqueda
   const handleSearchChange = (e) => setSearch(e.target.value);
   const handleClear = () => setSearch("");
 
-  // Confirmar y eliminar asignación
   const confirmDelete = (project_id, engineer_id) => {
     toast.custom((t) => (
       <div
@@ -124,77 +114,20 @@ export default function ShowAssignments({ refreshSignal = null }) {
     }
   };
 
-  // Abrir modal edición y cargar datos
   const openEditModal = (assignment) => {
     setAssignmentToEdit(assignment);
-    setEditForm({
-      project_id: assignment.project_id || "",
-      engineer_id: assignment.engineer_id || "",
-      role: assignment.role || "",
-    });
-    setEditErrors({});
     setShowEditModal(true);
-  };
-
-  // Manejar cambios en formulario edición
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditForm((prev) => ({ ...prev, [name]: value }));
-    setEditErrors((prev) => ({ ...prev, [name]: null }));
-  };
-
-  // Validar formulario edición
-  const validateEditForm = () => {
-    const errors = {};
-    if (!editForm.project_id) errors.project_id = "Selecciona un proyecto";
-    if (!editForm.engineer_id) errors.engineer_id = "Selecciona un ingeniero";
-    if (!editForm.role.trim()) errors.role = "El rol es obligatorio";
-    return errors;
-  };
-
-  // Guardar cambios edición
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    const errors = validateEditForm();
-    if (Object.keys(errors).length > 0) {
-      setEditErrors(errors);
-      return;
-    }
-    setEditLoading(true);
-    const { error } = await supabase
-      .from("assignments")
-      .update({
-        project_id: editForm.project_id,
-        engineer_id: editForm.engineer_id,
-        role: editForm.role.trim(),
-        assigned_at: new Date().toISOString(),
-      })
-      .match({
-        project_id: assignmentToEdit.project_id,
-        engineer_id: assignmentToEdit.engineer_id,
-      });
-    setEditLoading(false);
-    if (error) {
-      toast.error("Error al actualizar: " + error.message);
-    } else {
-      toast.success("Asignación actualizada");
-      setShowEditModal(false);
-      setAssignmentToEdit(null);
-      // Actualizar lista localmente
-      setAssignments((prev) =>
-        prev.map((a) =>
-          a.project_id === assignmentToEdit.project_id &&
-          a.engineer_id === assignmentToEdit.engineer_id
-            ? { ...a, ...editForm, assigned_at: new Date().toISOString() }
-            : a
-        )
-      );
-    }
   };
 
   const handleCloseModal = () => {
     setShowEditModal(false);
     setAssignmentToEdit(null);
+  };
+
+  const handleSuccess = () => {
+    setShowEditModal(false);
+    setAssignmentToEdit(null);
+    // Opcional: refrescar lista
   };
 
   return (
@@ -306,88 +239,12 @@ export default function ShowAssignments({ refreshSignal = null }) {
         </div>
       )}
 
-      {/* Modal de edición */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <form
-            onSubmit={handleEditSubmit}
-            className="bg-white rounded-xl p-6 w-full max-w-lg shadow-md space-y-4 relative"
-          >
-            <button
-              type="button"
-              onClick={handleCloseModal}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-              aria-label="Cerrar modal"
-            >
-              <FaTimes size={20} />
-            </button>
-            <h3 className="text-xl font-bold text-blue-700 mb-2">
-              Editar Asignación
-            </h3>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Proyecto <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="text"
-                value={assignmentToEdit.projects?.name || ""}
-                disabled
-                className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 cursor-not-allowed"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Ingeniero <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="text"
-                value={assignmentToEdit.engineers?.full_name || ""}
-                disabled
-                className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 cursor-not-allowed"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Rol <span className="text-red-600">*</span>
-              </label>
-              <input
-                name="role"
-                value={editForm.role}
-                onChange={handleEditChange}
-                className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
-                  editErrors.role
-                    ? "border-red-500 focus:ring-red-300"
-                    : "border-gray-300 focus:ring-blue-400"
-                }`}
-                required
-              />
-              {editErrors.role && (
-                <span className="text-xs text-red-600">{editErrors.role}</span>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                type="button"
-                onClick={handleCloseModal}
-                className="px-4 py-2 rounded border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200"
-                disabled={editLoading}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={editLoading}
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 hover:from-blue-700 hover:via-blue-800 hover:to-blue-900 text-white font-semibold py-2 px-6 rounded-md shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {editLoading ? "Guardando..." : "Guardar"}
-              </button>
-            </div>
-          </form>
-        </div>
+      {showEditModal && assignmentToEdit && (
+        <EditAssignments
+          assignment={assignmentToEdit}
+          onClose={handleCloseModal}
+          onSuccess={handleSuccess}
+        />
       )}
     </div>
   );

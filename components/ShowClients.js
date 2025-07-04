@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import supabase from "@/lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
-import { FaEdit, FaTrash, FaTimes } from "react-icons/fa";
+import { FaEdit, FaTrash } from "react-icons/fa";
+import EditClients from "@/components/EditClients";
 
 export default function ShowClients({ refreshSignal = null }) {
   const [clients, setClients] = useState([]);
@@ -11,19 +12,8 @@ export default function ShowClients({ refreshSignal = null }) {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  // Estados para edición
   const [showEditModal, setShowEditModal] = useState(false);
   const [clientToEdit, setClientToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({
-    company_name: "",
-    contact_name: "",
-    contact_email: "",
-    contact_phone: "",
-    address: "",
-  });
-  const [editErrors, setEditErrors] = useState({});
-  const [editLoading, setEditLoading] = useState(false);
 
   // Debounce para búsqueda
   useEffect(() => {
@@ -64,7 +54,6 @@ export default function ShowClients({ refreshSignal = null }) {
     fetchClients(debouncedSearch);
   }, [debouncedSearch, refreshSignal]);
 
-  // Manejo de búsqueda
   const handleSearchChange = (e) => setSearch(e.target.value);
   const handleClear = () => setSearch("");
 
@@ -110,83 +99,23 @@ export default function ShowClients({ refreshSignal = null }) {
     }
   };
 
-  // Abrir modal edición y cargar datos
+  // Abrir modal edición
   const openEditModal = (client) => {
     setClientToEdit(client);
-    setEditForm({
-      company_name: client.company_name || "",
-      contact_name: client.contact_name || "",
-      contact_email: client.contact_email || "",
-      contact_phone: client.contact_phone || "",
-      address: client.address || "",
-    });
-    setEditErrors({});
     setShowEditModal(true);
   };
 
-  // Manejar cambios en formulario edición
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditForm((prev) => ({ ...prev, [name]: value }));
-    setEditErrors((prev) => ({ ...prev, [name]: null }));
-  };
-
-  // Validar formulario edición
-  const validateEditForm = () => {
-    const errors = {};
-    if (!editForm.company_name.trim())
-      errors.company_name = "El nombre de la empresa es obligatorio";
-    if (!editForm.contact_name.trim())
-      errors.contact_name = "El nombre del contacto es obligatorio";
-    if (!editForm.contact_email.trim()) {
-      errors.contact_email = "El correo electrónico es obligatorio";
-    } else if (!/\S+@\S+\.\S+/.test(editForm.contact_email)) {
-      errors.contact_email = "El correo electrónico no es válido";
-    }
-    if (editForm.contact_phone && !/^\d+$/.test(editForm.contact_phone)) {
-      errors.contact_phone = "El teléfono solo debe contener números";
-    }
-    return errors;
-  };
-
-  // Guardar cambios edición
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    const errors = validateEditForm();
-    if (Object.keys(errors).length > 0) {
-      setEditErrors(errors);
-      return;
-    }
-    setEditLoading(true);
-    const { error } = await supabase
-      .from("clients")
-      .update({
-        company_name: editForm.company_name.trim(),
-        contact_name: editForm.contact_name.trim(),
-        contact_email: editForm.contact_email.trim(),
-        contact_phone: editForm.contact_phone.trim() || null,
-        address: editForm.address.trim() || null,
-      })
-      .eq("id", clientToEdit.id);
-    setEditLoading(false);
-    if (error) {
-      toast.error("Error al actualizar: " + error.message);
-    } else {
-      toast.success("Cliente actualizado");
-      setShowEditModal(false);
-      setClientToEdit(null);
-      // Actualizar lista localmente
-      setClients((prev) =>
-        prev.map((client) =>
-          client.id === clientToEdit.id ? { ...client, ...editForm } : client
-        )
-      );
-    }
-  };
-
+  // Cerrar modal edición
   const handleCloseModal = () => {
     setShowEditModal(false);
     setClientToEdit(null);
+  };
+
+  // Actualizar lista localmente después de editar
+  const handleSuccess = () => {
+    setShowEditModal(false);
+    setClientToEdit(null);
+    // Opcional: refrescar lista o usar refreshSignal
   };
 
   return (
@@ -312,145 +241,12 @@ export default function ShowClients({ refreshSignal = null }) {
       )}
 
       {/* Modal de edición */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <form
-            onSubmit={handleEditSubmit}
-            className="bg-white rounded-xl p-6 w-full max-w-lg shadow-md space-y-4 relative"
-          >
-            <button
-              type="button"
-              onClick={handleCloseModal}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-              aria-label="Cerrar modal"
-            >
-              <FaTimes size={20} />
-            </button>
-            <h3 className="text-xl font-bold text-blue-700 mb-2">
-              Editar Cliente
-            </h3>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Nombre de la empresa <span className="text-red-600">*</span>
-              </label>
-              <input
-                name="company_name"
-                value={editForm.company_name}
-                onChange={handleEditChange}
-                className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
-                  editErrors.company_name
-                    ? "border-red-500 focus:ring-red-300"
-                    : "border-gray-300 focus:ring-blue-400"
-                }`}
-                required
-              />
-              {editErrors.company_name && (
-                <span className="text-xs text-red-600">
-                  {editErrors.company_name}
-                </span>
-              )}
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Nombre del contacto <span className="text-red-600">*</span>
-              </label>
-              <input
-                name="contact_name"
-                value={editForm.contact_name}
-                onChange={handleEditChange}
-                className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
-                  editErrors.contact_name
-                    ? "border-red-500 focus:ring-red-300"
-                    : "border-gray-300 focus:ring-blue-400"
-                }`}
-                required
-              />
-              {editErrors.contact_name && (
-                <span className="text-xs text-red-600">
-                  {editErrors.contact_name}
-                </span>
-              )}
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Correo electrónico <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="email"
-                name="contact_email"
-                value={editForm.contact_email}
-                onChange={handleEditChange}
-                className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
-                  editErrors.contact_email
-                    ? "border-red-500 focus:ring-red-300"
-                    : "border-gray-300 focus:ring-blue-400"
-                }`}
-                required
-              />
-              {editErrors.contact_email && (
-                <span className="text-xs text-red-600">
-                  {editErrors.contact_email}
-                </span>
-              )}
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Teléfono
-              </label>
-              <input
-                type="text"
-                name="contact_phone"
-                value={editForm.contact_phone}
-                onChange={handleEditChange}
-                className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
-                  editErrors.contact_phone
-                    ? "border-red-500 focus:ring-red-300"
-                    : "border-gray-300 focus:ring-blue-400"
-                }`}
-              />
-              {editErrors.contact_phone && (
-                <span className="text-xs text-red-600">
-                  {editErrors.contact_phone}
-                </span>
-              )}
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-1 text-blue-700">
-                Dirección
-              </label>
-              <textarea
-                name="address"
-                value={editForm.address}
-                onChange={handleEditChange}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
-                rows={3}
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                type="button"
-                onClick={handleCloseModal}
-                className="px-4 py-2 rounded border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200"
-                disabled={editLoading}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={editLoading}
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 hover:from-blue-700 hover:via-blue-800 hover:to-blue-900 text-white font-semibold py-2 px-6 rounded-md shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {editLoading ? "Guardando..." : "Guardar"}
-              </button>
-            </div>
-          </form>
-        </div>
+      {showEditModal && clientToEdit && (
+        <EditClients
+          client={clientToEdit}
+          onClose={handleCloseModal}
+          onSuccess={handleSuccess}
+        />
       )}
     </div>
   );
