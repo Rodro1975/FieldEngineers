@@ -12,6 +12,7 @@ import {
   FaCog,
   FaSignOutAlt,
 } from "react-icons/fa";
+import { FaPerson } from "react-icons/fa6";
 
 export default function Sidebar({ userEmail }) {
   const router = useRouter();
@@ -37,13 +38,19 @@ export default function Sidebar({ userEmail }) {
           <FaUsers /> Ingenieros
         </Link>
         <Link
+          href="/dashboard/clients"
+          className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
+        >
+          <FaPerson /> Clientes
+        </Link>
+        <Link
           href="/dashboard/projects"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaProjectDiagram /> Proyectos
         </Link>
         <Link
-          href="/assignments"
+          href="/dashboard/assignments"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaTasks /> Asignaciones
