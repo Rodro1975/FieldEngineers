@@ -14,16 +14,28 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
   const [engineerToEdit, setEngineerToEdit] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(8);
 
-  // Debounce para búsqueda
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search.trim());
+      setCurrentPage(1);
     }, 300);
     return () => clearTimeout(handler);
   }, [search]);
 
-  // Carga de ingenieros
+  useEffect(() => {
+    const updateRowsPerPage = () => {
+      const width = window.innerWidth;
+      if (width < 768) setRowsPerPage(6);
+      else setRowsPerPage(8);
+    };
+    updateRowsPerPage();
+    window.addEventListener("resize", updateRowsPerPage);
+    return () => window.removeEventListener("resize", updateRowsPerPage);
+  }, []);
+
   useEffect(() => {
     async function fetchData(filter = "") {
       setLoading(true);
@@ -49,14 +61,12 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
         setLoading(false);
       }
     }
-
     fetchData(debouncedSearch);
   }, [debouncedSearch, refreshSignal]);
 
   const handleSearchChange = (e) => setSearch(e.target.value);
   const handleClear = () => setSearch("");
 
-  // Confirmar y eliminar ingeniero
   const confirmDelete = (id) => {
     toast.custom((t) => (
       <div
@@ -98,31 +108,32 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
     }
   };
 
-  // Abrir modal edición
   const openEditModal = (engineer) => {
     setEngineerToEdit(engineer);
     setShowEditModal(true);
   };
 
-  // Cerrar modal edición
   const handleCloseModal = () => {
     setShowEditModal(false);
     setEngineerToEdit(null);
   };
 
-  // Actualizar lista localmente después de editar
   const handleSuccess = () => {
     setShowEditModal(false);
     setEngineerToEdit(null);
-    // Refrescar lista
-    // Puedes llamar aquí a fetchData o usar un refreshSignal en el componente padre
   };
+
+  const totalPages = Math.ceil(ingenieros.length / rowsPerPage);
+  const startIdx = (currentPage - 1) * rowsPerPage;
+  const paginatedIngenieros = ingenieros.slice(
+    startIdx,
+    startIdx + rowsPerPage
+  );
 
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-4rem)]">
       <Toaster position="top-center" />
 
-      {/* Búsqueda */}
       <div className="mb-2 flex items-center gap-2 max-w-full">
         <input
           type="text"
@@ -192,18 +203,16 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
                   ))}
                 </tr>
               </thead>
-
               <tbody>
-                {ingenieros.length === 0 ? (
+                {paginatedIngenieros.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="p-4 text-center text-gray-500">
                       No se encontraron ingenieros.
                     </td>
                   </tr>
                 ) : (
-                  ingenieros.map((ing, idx) => {
+                  paginatedIngenieros.map((ing, idx) => {
                     const bgColor = idx % 2 === 0 ? "white" : "#f9fafb";
-
                     return (
                       <tr
                         key={ing.id}
@@ -262,9 +271,9 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
                         </td>
                         <td className="p-3 flex gap-2">
                           <button
+                            onClick={() => openEditModal(ing)}
                             className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition"
                             title="Editar"
-                            onClick={() => openEditModal(ing)}
                           >
                             <FaEdit />
                             <span className="hidden sm:inline">Editar</span>
@@ -285,6 +294,31 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Paginación */}
+      {ingenieros.length > rowsPerPage && (
+        <div className="mt-4 flex justify-center items-center gap-4">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <span className="text-sm text-gray-700">
+            Página {currentPage} de {totalPages}
+          </span>
+          <button
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+          >
+            Siguiente
+          </button>
         </div>
       )}
 

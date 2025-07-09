@@ -3,6 +3,21 @@
 import { useState } from "react";
 import supabase from "@/lib/supabaseClient";
 import toast from "react-hot-toast";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+import { z } from "zod";
+
+const schema = z.object({
+  company_name: z.string().min(1, "Campo obligatorio"),
+  contact_name: z.string().min(1, "Campo obligatorio"),
+  contact_email: z.string().email("Correo no válido"),
+  contact_phone: z
+    .string()
+    .regex(
+      /^\+\d{6,15}$/,
+      "Número telefónico inválido. Usa formato internacional (ej. +521234567890)"
+    ),
+});
 
 export default function RegisterClients({ onSuccess, onClose }) {
   const [form, setForm] = useState({
@@ -22,30 +37,17 @@ export default function RegisterClients({ onSuccess, onClose }) {
     setErrors((prev) => ({ ...prev, [name]: null }));
   };
 
-  const validate = () => {
-    const newErrors = {};
-    if (!form.company_name.trim())
-      newErrors.company_name = "El nombre de la empresa es obligatorio";
-    if (!form.contact_name.trim())
-      newErrors.contact_name = "El nombre del contacto es obligatorio";
-    if (!form.contact_email.trim()) {
-      newErrors.contact_email = "El correo electrónico es obligatorio";
-    } else if (!/\S+@\S+\.\S+/.test(form.contact_email)) {
-      newErrors.contact_email = "El correo electrónico no es válido";
-    }
-    // Teléfono es opcional, pero si se ingresa, validar que solo tenga números
-    if (form.contact_phone && !/^\d+$/.test(form.contact_phone)) {
-      newErrors.contact_phone = "El teléfono solo debe contener números";
-    }
-    return newErrors;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
+    const result = schema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors = {};
+      result.error.errors.forEach((err) => {
+        fieldErrors[err.path[0]] = err.message;
+      });
+      setErrors(fieldErrors);
+      toast.error("Corrige los errores del formulario");
       return;
     }
 
@@ -56,7 +58,7 @@ export default function RegisterClients({ onSuccess, onClose }) {
         company_name: form.company_name.trim(),
         contact_name: form.contact_name.trim(),
         contact_email: form.contact_email.trim(),
-        contact_phone: form.contact_phone.trim() || null,
+        contact_phone: form.contact_phone.trim(),
         address: form.address.trim() || null,
       },
     ]);
@@ -88,6 +90,7 @@ export default function RegisterClients({ onSuccess, onClose }) {
         Registrar Cliente
       </h2>
 
+      {/* Empresa */}
       <div>
         <label
           htmlFor="company_name"
@@ -99,7 +102,6 @@ export default function RegisterClients({ onSuccess, onClose }) {
           id="company_name"
           name="company_name"
           type="text"
-          placeholder="Ej: ACME Corp"
           value={form.company_name}
           onChange={handleChange}
           className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
@@ -107,7 +109,6 @@ export default function RegisterClients({ onSuccess, onClose }) {
               ? "border-red-500 focus:ring-red-300"
               : "border-gray-300 focus:ring-blue-400"
           }`}
-          required
           disabled={loading}
         />
         {errors.company_name && (
@@ -115,6 +116,7 @@ export default function RegisterClients({ onSuccess, onClose }) {
         )}
       </div>
 
+      {/* Contacto */}
       <div>
         <label
           htmlFor="contact_name"
@@ -126,7 +128,6 @@ export default function RegisterClients({ onSuccess, onClose }) {
           id="contact_name"
           name="contact_name"
           type="text"
-          placeholder="Ej: Juan Pérez"
           value={form.contact_name}
           onChange={handleChange}
           className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
@@ -134,7 +135,6 @@ export default function RegisterClients({ onSuccess, onClose }) {
               ? "border-red-500 focus:ring-red-300"
               : "border-gray-300 focus:ring-blue-400"
           }`}
-          required
           disabled={loading}
         />
         {errors.contact_name && (
@@ -142,6 +142,7 @@ export default function RegisterClients({ onSuccess, onClose }) {
         )}
       </div>
 
+      {/* Correo */}
       <div>
         <label
           htmlFor="contact_email"
@@ -153,7 +154,6 @@ export default function RegisterClients({ onSuccess, onClose }) {
           id="contact_email"
           name="contact_email"
           type="email"
-          placeholder="Ej: contacto@empresa.com"
           value={form.contact_email}
           onChange={handleChange}
           className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
@@ -161,7 +161,6 @@ export default function RegisterClients({ onSuccess, onClose }) {
               ? "border-red-500 focus:ring-red-300"
               : "border-gray-300 focus:ring-blue-400"
           }`}
-          required
           disabled={loading}
         />
         {errors.contact_email && (
@@ -169,21 +168,23 @@ export default function RegisterClients({ onSuccess, onClose }) {
         )}
       </div>
 
+      {/* Teléfono con bandera */}
       <div>
         <label
           htmlFor="contact_phone"
           className="block font-semibold mb-1 text-blue-700"
         >
-          Teléfono
+          Teléfono <span className="text-red-600">*</span>
         </label>
-        <input
-          id="contact_phone"
-          name="contact_phone"
-          type="text"
-          placeholder="Ej: 5551234567"
+        <PhoneInput
+          international
+          defaultCountry="MX"
           value={form.contact_phone}
-          onChange={handleChange}
-          className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
+          onChange={(value) => {
+            setForm((prev) => ({ ...prev, contact_phone: value || "" }));
+            setErrors((prev) => ({ ...prev, contact_phone: null }));
+          }}
+          className={`react-phone-input w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 ${
             errors.contact_phone
               ? "border-red-500 focus:ring-red-300"
               : "border-gray-300 focus:ring-blue-400"
@@ -195,6 +196,7 @@ export default function RegisterClients({ onSuccess, onClose }) {
         )}
       </div>
 
+      {/* Dirección */}
       <div>
         <label
           htmlFor="address"
@@ -205,7 +207,6 @@ export default function RegisterClients({ onSuccess, onClose }) {
         <textarea
           id="address"
           name="address"
-          placeholder="Ej: Calle Falsa 123, Ciudad"
           rows={3}
           value={form.address}
           onChange={handleChange}

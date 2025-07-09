@@ -4,6 +4,8 @@ import { z } from "zod";
 import toast, { Toaster } from "react-hot-toast";
 import supabase from "@/lib/supabaseClient";
 import { FaUserPlus } from "react-icons/fa6";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 
 const schema = z.object({
   full_name: z.string().min(1, "Campo obligatorio"),
@@ -13,7 +15,10 @@ const schema = z.object({
   email: z.string().email("Correo no válido"),
   telephone: z
     .string()
-    .regex(/^\d{10}$/, "Debe contener exactamente 10 números"),
+    .regex(
+      /^\+\d{6,15}$/,
+      "Número telefónico inválido. Usa formato internacional (ej. +521234567890)"
+    ),
   proyect: z.string().optional(),
   available: z.boolean(),
   user_id: z.string().uuid(),
@@ -302,7 +307,7 @@ export default function RegisterEngineer({ onSuccess }) {
         )}
       </div>
 
-      {/* Teléfono */}
+      {/* Teléfono con bandera e indicativo */}
       <div>
         <label
           htmlFor="telephone"
@@ -310,20 +315,19 @@ export default function RegisterEngineer({ onSuccess }) {
         >
           Teléfono <span className="text-red-600">*</span>
         </label>
-        <input
-          id="telephone"
-          name="telephone"
-          type="text"
-          inputMode="numeric"
-          placeholder="Ej: 8181234567"
-          maxLength={10}
-          className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
+        <PhoneInput
+          international
+          defaultCountry="MX"
+          value={form.telephone}
+          onChange={(value) => {
+            setForm((prev) => ({ ...prev, telephone: value || "" }));
+            validateField("telephone", value || "");
+          }}
+          className={`react-phone-input w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 ${
             errors.telephone
               ? "border-red-500 focus:ring-red-300"
               : "border-gray-300 focus:ring-blue-400"
           }`}
-          value={form.telephone}
-          onChange={handleChange}
           disabled={loading}
         />
         {errors.telephone && (

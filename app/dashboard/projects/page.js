@@ -5,12 +5,14 @@ import { useHeader } from "@/context/HeaderContext";
 import ShowProjects from "@/components/ShowProjects"; // Componente para mostrar proyectos
 import RegisterProject from "@/components/RegisterProjects"; // Componente para registrar proyecto
 import Modal from "@/components/Modal";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaClipboardList } from "react-icons/fa";
+import TrackProject from "@/components/TrackProject";
 
 export default function ProjectsPage() {
   const { setHeader } = useHeader();
   const [showModal, setShowModal] = useState(false);
   const [refreshSignal, setRefreshSignal] = useState(0);
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
 
   useEffect(() => {
     setHeader({
@@ -21,6 +23,11 @@ export default function ProjectsPage() {
           label: "Registrar Proyecto",
           onClick: () => setShowModal(true),
           icon: FaPlus,
+        },
+        {
+          label: "Seguimiento de Proyecto",
+          onClick: () => setShowTrackingModal(true), // Nuevo modal
+          icon: FaClipboardList, // Puedes importar este ícono de react-icons/fa
         },
       ],
     });
@@ -39,6 +46,15 @@ export default function ProjectsPage() {
 
       <Modal show={showModal} onClose={() => setShowModal(false)}>
         <RegisterProject onSuccess={handleSuccess} />
+      </Modal>
+      <Modal
+        show={showTrackingModal}
+        onClose={() => setShowTrackingModal(false)}
+      >
+        <TrackProject
+          onSuccess={handleSuccess}
+          onClose={() => setShowTrackingModal(false)} // ← este es el que faltaba
+        />
       </Modal>
     </div>
   );

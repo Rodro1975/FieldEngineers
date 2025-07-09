@@ -4,6 +4,19 @@ import { useState, useEffect } from "react";
 import supabase from "@/lib/supabaseClient";
 import toast from "react-hot-toast";
 import Modal from "./Modal";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+
+const ENGLISH_LEVELS = [
+  { value: "", label: "Selecciona el nivel de inglés" },
+  { value: "Sin inglés", label: "Sin inglés" },
+  { value: "A1", label: "A1 (Básico)" },
+  { value: "A2", label: "A2" },
+  { value: "B1", label: "B1" },
+  { value: "B2", label: "B2 (Intermedio)" },
+  { value: "C1", label: "C1" },
+  { value: "C2", label: "C2 (Avanzado)" },
+];
 
 export default function EditEngineer({ engineer, onClose, onSuccess }) {
   const [form, setForm] = useState({
@@ -28,7 +41,11 @@ export default function EditEngineer({ engineer, onClose, onSuccess }) {
         skills: (engineer.skills || []).join(", "),
         english_level: engineer.english_level || "",
         email: engineer.email || "",
-        telephone: engineer.telephone || "",
+        telephone:
+          typeof engineer.telephone === "string" &&
+          /^\+\d{6,15}$/.test(engineer.telephone)
+            ? engineer.telephone
+            : "",
         proyect: engineer.proyect || "",
         available: engineer.available || false,
       });
@@ -106,7 +123,7 @@ export default function EditEngineer({ engineer, onClose, onSuccess }) {
           Editar Ingeniero
         </h3>
 
-        {/* Campos del formulario */}
+        {/* Nombre completo*/}
         <div>
           <label className="block font-semibold mb-1 text-blue-700">
             Nombre completo <span className="text-red-600">*</span>
@@ -127,7 +144,6 @@ export default function EditEngineer({ engineer, onClose, onSuccess }) {
           )}
         </div>
 
-        {/* Repite para los demás campos... */}
         {/* Ciudad */}
         <div>
           <label className="block font-semibold mb-1 text-blue-700">
@@ -173,25 +189,29 @@ export default function EditEngineer({ engineer, onClose, onSuccess }) {
 
         {/* Nivel de inglés */}
         <div>
-          <label className="block font-semibold mb-1 text-blue-700">
+          <label
+            htmlFor="english_level"
+            className="block font-semibold mb-1 text-blue-700"
+          >
             Nivel de inglés <span className="text-red-600">*</span>
           </label>
           <select
+            id="english_level"
             name="english_level"
-            value={form.english_level}
-            onChange={handleChange}
             className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
               errors.english_level
                 ? "border-red-500 focus:ring-red-300"
                 : "border-gray-300 focus:ring-blue-400"
             }`}
-            required
+            value={form.english_level}
+            onChange={handleChange}
+            disabled={loading}
           >
-            <option value="">Selecciona nivel</option>
-            <option value="básico">Básico</option>
-            <option value="intermedio">Intermedio</option>
-            <option value="avanzado">Avanzado</option>
-            <option value="nativo">Nativo</option>
+            {ENGLISH_LEVELS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
           {errors.english_level && (
             <span className="text-xs text-red-600">{errors.english_level}</span>
@@ -220,24 +240,25 @@ export default function EditEngineer({ engineer, onClose, onSuccess }) {
           )}
         </div>
 
-        {/* Teléfono */}
+        {/* Teléfono con bandera e indicativo */}
         <div>
           <label className="block font-semibold mb-1 text-blue-700">
             Teléfono <span className="text-red-600">*</span>
           </label>
-          <input
-            type="text"
-            name="telephone"
-            inputMode="numeric"
-            maxLength={10}
+          <PhoneInput
+            international
+            defaultCountry="MX"
             value={form.telephone}
-            onChange={handleChange}
-            className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
+            onChange={(value) => {
+              setForm((prev) => ({ ...prev, telephone: value || "" }));
+              setErrors((prev) => ({ ...prev, telephone: null }));
+            }}
+            className={`react-phone-input w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 ${
               errors.telephone
                 ? "border-red-500 focus:ring-red-300"
                 : "border-gray-300 focus:ring-blue-400"
             }`}
-            required
+            disabled={loading}
           />
           {errors.telephone && (
             <span className="text-xs text-red-600">{errors.telephone}</span>
