@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import supabase from "@/lib/supabaseClient";
 import { Toaster, toast } from "react-hot-toast";
-import RateCard from "@/components/RateCard"; // Asegúrate que este archivo exista
+import RateCard from "@/components/RateCard";
 
 export default function ShowRates({ refreshSignal = null }) {
   const [rates, setRates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showAll, setShowAll] = useState(false); // Mostrar tarifas vencidas
 
   useEffect(() => {
     fetchRates();
@@ -18,7 +19,8 @@ export default function ShowRates({ refreshSignal = null }) {
     setLoading(true);
     const { data, error } = await supabase
       .from("client_rates")
-      .select("*, clients(company_name)");
+      .select("*, clients(company_name)")
+      .order("created_at", { ascending: false });
 
     if (error) {
       toast.error("Error al cargar tarifas");
@@ -30,10 +32,11 @@ export default function ShowRates({ refreshSignal = null }) {
 
   const filteredRates = rates.filter((rate) => {
     const query = search.toLowerCase();
-    return (
+    const matchText =
       rate.clients?.company_name?.toLowerCase().includes(query) ||
-      rate.notes?.toLowerCase().includes(query)
-    );
+      rate.notes?.toLowerCase().includes(query);
+    const matchVigente = showAll ? true : rate.vigente === true;
+    return matchText && matchVigente;
   });
 
   const handleClear = () => setSearch("");
@@ -43,12 +46,10 @@ export default function ShowRates({ refreshSignal = null }) {
       <Toaster position="top-center" />
 
       {/* Tarjeta de tarifas propias */}
-      <div>
-        <RateCard />
-      </div>
+      <RateCard />
 
       {/* Búsqueda */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
         <input
           type="text"
           placeholder="Buscar por empresa o notas..."
@@ -56,12 +57,18 @@ export default function ShowRates({ refreshSignal = null }) {
           onChange={(e) => setSearch(e.target.value)}
           className="border border-gray-300 rounded px-3 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition text-sm"
+        >
+          {showAll ? "Ocultar vencidas" : "Ver todas"}
+        </button>
         {search && (
           <button
             onClick={handleClear}
-            className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded transition"
+            className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded transition text-sm"
           >
-            <span className="ml-1 hidden sm:inline">Limpiar</span>
+            Limpiar
           </button>
         )}
       </div>
@@ -84,16 +91,19 @@ export default function ShowRates({ refreshSignal = null }) {
                   Cliente
                 </th>
                 <th className="p-2 text-left text-sm font-semibold text-gray-700">
-                  Por hora (USD)
+                  Por hora
                 </th>
                 <th className="p-2 text-left text-sm font-semibold text-gray-700">
-                  Media jornada (USD)
+                  Media jornada
                 </th>
                 <th className="p-2 text-left text-sm font-semibold text-gray-700">
-                  Jornada completa (USD)
+                  Jornada completa
                 </th>
                 <th className="p-2 text-left text-sm font-semibold text-gray-700">
-                  Hora extra (USD)
+                  Hora extra
+                </th>
+                <th className="p-2 text-left text-sm font-semibold text-gray-700">
+                  Estado
                 </th>
                 <th className="p-2 text-left text-sm font-semibold text-gray-700">
                   Notas
@@ -120,6 +130,17 @@ export default function ShowRates({ refreshSignal = null }) {
                   </td>
                   <td className="p-2 text-sm text-gray-700">
                     ${rate.extra_hour_rate?.toFixed(2) || "0.00"}
+                  </td>
+                  <td className="p-2 text-sm">
+                    {rate.vigente ? (
+                      <span className="text-green-600 font-semibold">
+                        Vigente
+                      </span>
+                    ) : (
+                      <span className="text-red-500 text-sm italic">
+                        Vencida ({rate.fecha_fin})
+                      </span>
+                    )}
                   </td>
                   <td className="p-2 text-sm text-gray-600">
                     {rate.notes || "-"}
