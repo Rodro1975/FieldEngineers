@@ -63,7 +63,7 @@ export default function Sidebar({ userEmail }) {
           <FaFileAlt /> Reportes
         </Link>
         <Link
-          href="/contabilidad"
+          href="/dashboard/billings"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaCommentDollar /> Contabilidad
