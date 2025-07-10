@@ -11,6 +11,7 @@ import {
   FaFileAlt,
   FaCog,
   FaSignOutAlt,
+  FaCommentDollar,
 } from "react-icons/fa";
 import { FaPerson } from "react-icons/fa6";
 
@@ -60,6 +61,12 @@ export default function Sidebar({ userEmail }) {
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaFileAlt /> Reportes
+        </Link>
+        <Link
+          href="/contabilidad"
+          className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
+        >
+          <FaCommentDollar /> Contabilidad
         </Link>
         <Link
           href="/settings"

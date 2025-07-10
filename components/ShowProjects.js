@@ -149,6 +149,9 @@ export default function ShowProjects({ refreshSignal = null }) {
                   Nombre
                 </th>
                 <th className="text-left p-3 text-gray-700 font-semibold text-sm border-b border-gray-300">
+                  Estado
+                </th>
+                <th className="text-left p-3 text-gray-700 font-semibold text-sm border-b border-gray-300">
                   Descripción
                 </th>
                 <th className="text-left p-3 text-gray-700 font-semibold text-sm border-b border-gray-300">
@@ -165,7 +168,7 @@ export default function ShowProjects({ refreshSignal = null }) {
             <tbody>
               {projects.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-4 text-center text-gray-500">
+                  <td colSpan={7} className="p-4 text-center text-gray-500">
                     No se encontraron proyectos.
                   </td>
                 </tr>
@@ -178,6 +181,29 @@ export default function ShowProjects({ refreshSignal = null }) {
                     <td className="p-3 text-sm text-gray-600">{project.id}</td>
                     <td className="p-3 text-sm font-medium text-gray-900">
                       {project.name}
+                    </td>
+                    <td className="p-3 text-sm">
+                      <span
+                        className={`capitalize font-semibold px-2 py-1 rounded text-xs inline-block ${
+                          project.status === "propuesta"
+                            ? "bg-blue-100 text-blue-800"
+                            : project.status === "cotización enviada"
+                            ? "bg-indigo-100 text-indigo-800"
+                            : project.status === "cotización aprobada"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : project.status === "en ejecución"
+                            ? "bg-green-100 text-green-800"
+                            : project.status === "en pausa"
+                            ? "bg-orange-100 text-orange-800"
+                            : project.status === "finalizado"
+                            ? "bg-gray-200 text-gray-700"
+                            : project.status === "cancelado"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {project.status || "sin estado"}
+                      </span>
                     </td>
                     <td className="p-3 text-sm text-gray-600 break-words">
                       {project.description || "-"}

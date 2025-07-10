@@ -4,21 +4,40 @@ import { useState, useEffect, useCallback } from "react";
 import supabase from "@/lib/supabaseClient";
 import toast from "react-hot-toast";
 
-export default function TrackProject({ onClose }) {
+export default function TrackProject({
+  projectId: propProjectId = null,
+  onClose,
+}) {
   const [projects, setProjects] = useState([]);
-  const [selectedProject, setSelectedProject] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState(
+    propProjectId || ""
+  );
   const [history, setHistory] = useState([]);
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fetchTrackingHistory = useCallback(async () => {
-    if (!selectedProject) return;
+  // Cargar lista de proyectos (solo si no hay projectId desde props)
+  useEffect(() => {
+    if (!propProjectId) {
+      supabase
+        .from("projects")
+        .select("id, name")
+        .order("name", { ascending: true })
+        .then(({ data, error }) => {
+          if (error) toast.error("Error al cargar proyectos");
+          else setProjects(data);
+        });
+    }
+  }, [propProjectId]);
 
+  // Función para cargar historial
+  const fetchTrackingHistory = useCallback(async () => {
+    if (!selectedProjectId) return;
     const { data, error } = await supabase
       .from("project_tracking")
       .select("*, profiles(full_name)")
-      .eq("project_id", selectedProject)
+      .eq("project_id", selectedProjectId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -26,52 +45,43 @@ export default function TrackProject({ onClose }) {
     } else {
       setHistory(data);
     }
-  }, [selectedProject]);
+  }, [selectedProjectId]);
 
-  const fetchProjects = async () => {
-    const { data, error } = await supabase
-      .from("projects")
-      .select("id, name")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      toast.error("Error al cargar proyectos");
-    } else {
-      setProjects(data);
-    }
-  };
-
+  // Cargar historial cuando cambia proyecto
   useEffect(() => {
-    fetchProjects();
-  }, []);
+    if (selectedProjectId) fetchTrackingHistory();
+  }, [selectedProjectId, fetchTrackingHistory]);
 
-  useEffect(() => {
-    if (selectedProject) {
-      fetchTrackingHistory();
-    }
-  }, [selectedProject, fetchTrackingHistory]);
-
+  // Enviar seguimiento
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!status.trim() || !selectedProject) {
-      return toast.error("Selecciona un proyecto y estado");
-    }
+    if (!selectedProjectId) return toast.error("Selecciona un proyecto");
+    if (!status.trim()) return toast.error("Selecciona un estado");
 
     setLoading(true);
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const { error } = await supabase.from("project_tracking").insert({
-      project_id: selectedProject,
-      status,
-      notes,
-      created_by: user.id,
-    });
+    // Insertar en historial
+    const { error: trackingError } = await supabase
+      .from("project_tracking")
+      .insert({
+        project_id: selectedProjectId,
+        status,
+        notes,
+        created_by: user.id,
+      });
+
+    // Actualizar estado en projects
+    const { error: updateError } = await supabase
+      .from("projects")
+      .update({ status })
+      .eq("id", selectedProjectId);
 
     setLoading(false);
 
-    if (error) {
+    if (trackingError || updateError) {
       toast.error("Error al registrar seguimiento");
     } else {
       toast.success("Seguimiento registrado");
@@ -88,24 +98,26 @@ export default function TrackProject({ onClose }) {
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-        <div>
-          <label className="font-semibold text-blue-700 block mb-1">
-            Proyecto
-          </label>
-          <select
-            value={selectedProject}
-            onChange={(e) => setSelectedProject(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2"
-            required
-          >
-            <option value="">Selecciona un proyecto</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {!propProjectId && (
+          <div>
+            <label className="font-semibold text-blue-700 block mb-1">
+              Proyecto
+            </label>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="w-full border border-gray-300 rounded px-3 py-2"
+              required
+            >
+              <option value="">Selecciona un proyecto</option>
+              {projects.map((proj) => (
+                <option key={proj.id} value={proj.id}>
+                  {proj.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div>
           <label className="font-semibold text-blue-700 block mb-1">
@@ -119,7 +131,8 @@ export default function TrackProject({ onClose }) {
           >
             <option value="">Selecciona un estado</option>
             <option value="propuesta">Propuesta</option>
-            <option value="cotizacion enviada">Cotización enviada</option>
+            <option value="cotización enviada">Cotización enviada</option>
+            <option value="cotización aprobada">Cotización aprobada</option>
             <option value="en ejecución">En ejecución</option>
             <option value="en pausa">En pausa</option>
             <option value="finalizado">Finalizado</option>
@@ -165,7 +178,9 @@ export default function TrackProject({ onClose }) {
         ) : (
           history.map((entry) => (
             <li key={entry.id} className="border-b pb-2 text-sm text-gray-700">
-              <p className="font-medium text-blue-700">{entry.status}</p>
+              <p className="font-medium text-blue-700 capitalize">
+                {entry.status}
+              </p>
               <p>{entry.notes || "Sin notas"}</p>
               <p className="text-xs text-gray-500">
                 {new Date(entry.created_at).toLocaleString()} –{" "}
