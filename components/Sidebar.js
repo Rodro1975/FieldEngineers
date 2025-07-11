@@ -57,7 +57,7 @@ export default function Sidebar({ userEmail }) {
           <FaTasks /> Asignaciones
         </Link>
         <Link
-          href="/reports"
+          href="/dashboard/reports"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaFileAlt /> Reportes

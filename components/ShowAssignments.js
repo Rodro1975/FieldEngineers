@@ -32,26 +32,31 @@ export default function ShowAssignments({ refreshSignal = null }) {
           .from("assignments")
           .select(
             `
-            project_id,
-            engineer_id,
-            assigned_at,
-            role,
-            projects(name),
-            engineers(full_name)
-          `
+          project_id,
+          engineer_id,
+          assigned_at,
+          role,
+          projects(name),
+          engineers(full_name)
+        `
           )
           .order("assigned_at", { ascending: false });
-
-        if (filter) {
-          query = query.or(
-            `projects.name.ilike.%${filter}%,engineers.full_name.ilike.%${filter}%`
-          );
-        }
 
         const { data, error } = await query;
         if (error) throw error;
 
-        setAssignments(data);
+        const filtered = filter
+          ? data.filter((item) => {
+              const project = item.projects?.name?.toLowerCase() || "";
+              const engineer = item.engineers?.full_name?.toLowerCase() || "";
+              return (
+                project.includes(filter.toLowerCase()) ||
+                engineer.includes(filter.toLowerCase())
+              );
+            })
+          : data;
+
+        setAssignments(filtered);
       } catch (err) {
         setError(err.message);
         toast.error("Error al cargar asignaciones: " + err.message);
