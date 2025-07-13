@@ -42,6 +42,12 @@ export default function ShowBillings({ refreshSignal }) {
           href="/dashboard/billings/rates"
         />
         <CardBilling
+          title="Nueva Cotización"
+          description="Crea propuestas y documentos personalizados para tus clientes."
+          icon={<FaFileInvoiceDollar />}
+          href="/dashboard/billings/quotes"
+        />
+        <CardBilling
           title="Facturación e Ingresos"
           description="Registra facturas, cobros y pagos recibidos por proyectos."
           icon={<FaFileInvoiceDollar />}
