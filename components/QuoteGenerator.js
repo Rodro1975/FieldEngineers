@@ -10,11 +10,12 @@ export default function QuoteGenerator({ onReady }) {
   const [clients, setClients] = useState([]);
   const [formData, setFormData] = useState({
     client_id: "",
+    custom_client_name: "",
     country: "",
     currency: "",
     validity: "",
     notes: "",
-    description: "", // ✅ NUEVO
+    description: "",
   });
   const [customValidity, setCustomValidity] = useState("");
   const [folio, setFolio] = useState("CARGANDO...");
@@ -74,19 +75,30 @@ export default function QuoteGenerator({ onReady }) {
   };
 
   const generatePDF = useCallback(() => {
-    const client = clients.find((c) => c.id === formData.client_id);
+    const client =
+      formData.client_id === "otro"
+        ? { contact_name: formData.custom_client_name, company_name: "" }
+        : clients.find((c) => c.id === formData.client_id);
+
     const pdf = new jsPDF();
     const pageHeight = pdf.internal.pageSize.getHeight();
+    const totalPages = []; // acumulador para páginas
 
-    // Logo
+    const addNewPageIfNeeded = (extraSpace = 20) => {
+      const yNow = pdf.lastAutoTable?.finalY || pdf.previousY || 20;
+      if (yNow + extraSpace > pageHeight - 20) {
+        pdf.addPage();
+        pdf.previousY = 20;
+      } else {
+        pdf.previousY = yNow;
+      }
+    };
+
+    // Logo y encabezado
     pdf.addImage("/LogoYellow.png", "PNG", 140, 10, 50, 20);
-
-    // Título
     pdf.setFontSize(18);
     pdf.setTextColor("#000000");
     pdf.text("COTIZACIÓN", 20, 40);
-
-    // Datos cliente
     pdf.setFontSize(12);
     pdf.setTextColor(0, 0, 0);
     pdf.text(`Folio: ${folio}`, 20, 48);
@@ -94,19 +106,18 @@ export default function QuoteGenerator({ onReady }) {
     pdf.text(`Empresa: ${client?.company_name || ""}`, 20, 64);
     pdf.text(`Fecha: ${new Date().toLocaleDateString()}`, 20, 72);
 
-    // Descripción general del servicio
     const descripcionTexto =
       formData.description ||
-      "Esta cotización detalla el alcance y costo de los servicios requeridos por el cliente para la solución solicitada. Incluye los conceptos y montos correspondientes, vigentes según condiciones comerciales actuales.";
+      "Esta cotización detalla el alcance y costo de los servicios requeridos por el cliente para la solución solicitada.";
     pdf.setFontSize(11);
     pdf.setTextColor(60, 60, 60);
     const lines = pdf.splitTextToSize(descripcionTexto, 170);
     pdf.text(lines, 20, 82);
+    let y = 82 + lines.length * 6;
+    pdf.previousY = y;
 
-    // Tabla de ítems
-    const startY = 82 + lines.length * 6;
     autoTable(pdf, {
-      startY,
+      startY: y,
       head: [["Descripción", "Monto"]],
       body: items.map((item) => [
         item.description,
@@ -114,77 +125,86 @@ export default function QuoteGenerator({ onReady }) {
       ]),
       styles: { fontSize: 10 },
       headStyles: {
-        fillColor: [248, 212, 50], // amarillo
-        textColor: [0, 0, 0], // negro
+        fillColor: [248, 212, 50],
+        textColor: [0, 0, 0],
       },
       margin: { left: 20, right: 20 },
     });
-
-    let y = pdf.lastAutoTable.finalY + 10;
+    y = pdf.lastAutoTable.finalY + 10;
 
     // Notas
+    addNewPageIfNeeded();
     pdf.setFontSize(11);
     pdf.setTextColor(0, 0, 0);
     pdf.text("Notas adicionales:", 20, y);
+    y += 6;
+
+    const notaLines = pdf.splitTextToSize(formData.notes || "Sin notas", 170);
     pdf.setFontSize(10);
-    pdf.text(formData.notes || "Sin notas", 20, y + 6);
+    notaLines.forEach((line) => {
+      addNewPageIfNeeded(6);
+      pdf.text(line, 20, y);
+      y += 6;
+    });
 
     // Total
     const total = items.reduce((acc, i) => acc + Number(i.amount), 0);
+    addNewPageIfNeeded(10);
     pdf.setFontSize(11);
     pdf.setTextColor("#000000");
-    pdf.text(`Total: ${formData.currency} $${total.toFixed(2)}`, 20, y + 20);
+    pdf.text(`Total: ${formData.currency} $${total.toFixed(2)}`, 20, y);
+    y += 10;
 
-    //Aclaración legal
+    // Aclaraciones legales
     pdf.setFontSize(9);
     pdf.setTextColor(80, 80, 80);
+    addNewPageIfNeeded(8);
     pdf.text(
       "* Los valores presentados son netos. No incluyen IVA ni impuestos locales o internacionales aplicables.",
       20,
-      y + 28
+      y
     );
+    y += 8;
 
-    //Vigencia
-    pdf.text(
-      "* Esta cotización tiene una vigencia de 15 días y está sujeta a la TRM vigente al día de pago.",
-      20,
-      y + 38
-    );
+    if (formData.currency === "USD") {
+      addNewPageIfNeeded(8);
+      pdf.text(
+        "* Esta cotización tiene una vigencia de 15 días y está sujeta a la TRM vigente al día de pago.",
+        20,
+        y
+      );
+      y += 8;
+    }
 
     // Firma
+    addNewPageIfNeeded(28);
     pdf.setTextColor("#f8d432");
     pdf.setFontSize(11);
-    pdf.text("Rodrigo Iván Ordóñez Chávez", 20, pageHeight - 40);
+    pdf.text("Rodrigo Iván Ordóñez Chávez", 20, y);
     pdf.setTextColor(0, 0, 0);
     pdf.setFontSize(10);
-    pdf.text("rodrigoivanordonezchavez@gmail.com", 20, pageHeight - 34);
-    pdf.textWithLink("WhatsApp: +57 302 228 3964", 20, pageHeight - 28, {
+    pdf.text("rodrigoivanordonezchavez@gmail.com", 20, y + 6);
+    pdf.textWithLink("WhatsApp: +57 302 228 3964", 20, y + 12, {
       url: "https://wa.me/573022283964",
     });
-
-    // Enlace institucional y legal
     pdf.setTextColor(30, 58, 138);
     pdf.setFontSize(9);
-    pdf.textWithLink(
-      "Soporte Tecnico y Soluciones Tectonolicas",
-      20,
-      pageHeight - 15,
-      {
-        url: "https://soporte-t-cnico-y-solucion-git-e46f24-rodrigo-ordonezs-projects.vercel.app/",
-      }
-    );
+    pdf.textWithLink("Soporte Técnico y Soluciones Tecnológicas", 20, y + 20, {
+      url: "https://soporte-t-cnico-y-solucion-git-e46f24-rodrigo-ordonezs-projects.vercel.app/",
+    });
     pdf.setTextColor(80, 80, 80);
 
+    // Número de página
+    const pageCount = pdf.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(9);
+      pdf.setTextColor(150);
+      pdf.text(`Página ${i} de ${pageCount}`, 180, pageHeight - 10);
+    }
+
     return pdf;
-  }, [
-    clients,
-    formData.client_id,
-    formData.currency,
-    formData.notes,
-    formData.description,
-    folio,
-    items,
-  ]);
+  }, [clients, formData, folio, items]);
 
   const handlePreview = useCallback(() => {
     if (!formData.client_id || items.some((i) => !i.description || !i.amount)) {
@@ -198,6 +218,8 @@ export default function QuoteGenerator({ onReady }) {
   useEffect(() => {
     if (onReady) onReady({ handlePreview });
   }, [onReady, handlePreview]);
+
+  // handleDownload se mantiene igual...
 
   const handleDownload = async () => {
     try {
@@ -263,15 +285,21 @@ export default function QuoteGenerator({ onReady }) {
       const { error: insertError } = await supabase.from("quotes").insert([
         {
           user_id,
-          client_id: formData.client_id,
+          client_id: formData.client_id === "otro" ? null : formData.client_id,
           folio,
           concept: items.map((i) => i.description).join(", "),
           amount: total,
           currency: formData.currency,
           validity:
             formData.validity === "otra" ? customValidity : formData.validity,
-          notes: formData.notes,
+          notes:
+            formData.notes +
+            (formData.client_id === "otro"
+              ? ` | Cliente provisional: ${formData.custom_client_name}`
+              : ""),
           pdf_url: urlData.signedUrl,
+          country: formData.country,
+          description: formData.description,
         },
       ]);
 
@@ -319,7 +347,12 @@ export default function QuoteGenerator({ onReady }) {
           <select
             name="client_id"
             value={formData.client_id}
-            onChange={handleChange}
+            onChange={(e) => {
+              handleChange(e);
+              if (e.target.value !== "otro") {
+                setFormData((prev) => ({ ...prev, custom_client_name: "" }));
+              }
+            }}
             className="w-full border px-3 py-2 rounded"
           >
             <option value="">Selecciona un cliente</option>
@@ -328,7 +361,19 @@ export default function QuoteGenerator({ onReady }) {
                 {c.contact_name} - {c.company_name}
               </option>
             ))}
+            <option value="otro">Otro (cliente no registrado)</option>
           </select>
+
+          {formData.client_id === "otro" && (
+            <input
+              type="text"
+              name="custom_client_name"
+              value={formData.custom_client_name}
+              onChange={handleChange}
+              placeholder="Nombre del cliente provisional"
+              className="w-full mt-2 border px-3 py-2 rounded"
+            />
+          )}
         </div>
 
         {/* Ítems dinámicos */}
@@ -424,11 +469,6 @@ export default function QuoteGenerator({ onReady }) {
           />
         </div>
       </div>
-
-      <p className="text-sm text-gray-600 italic pt-4">
-        La presente cotización está sujeta a la tasa representativa del mercado
-        (TRM) vigente al día de pago.
-      </p>
 
       <div className="flex flex-wrap gap-4 pt-6">
         <button

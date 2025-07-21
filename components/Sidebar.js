@@ -12,6 +12,7 @@ import {
   FaCog,
   FaSignOutAlt,
   FaCommentDollar,
+  FaRegCalendarAlt,
 } from "react-icons/fa";
 import { FaPerson } from "react-icons/fa6";
 
@@ -31,6 +32,12 @@ export default function Sidebar({ userEmail }) {
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaHome /> Inicio
+        </Link>
+        <Link
+          href="/dashboard/calendar"
+          className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
+        >
+          <FaRegCalendarAlt /> Agenda
         </Link>
         <Link
           href="/dashboard/engineers"
