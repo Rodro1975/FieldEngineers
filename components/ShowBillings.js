@@ -8,6 +8,8 @@ import {
   FaMoneyCheckAlt,
   FaChartLine,
   FaTools,
+  FaMoneyBillWave,
+  FaHandHoldingUsd,
 } from "react-icons/fa";
 import RateCard from "./RateCard";
 
@@ -48,15 +50,27 @@ export default function ShowBillings({ refreshSignal }) {
           href="/dashboard/billings/quotes"
         />
         <CardBilling
-          title="Facturación e Ingresos"
-          description="Registra facturas, cobros y pagos recibidos por proyectos."
+          title="Facturación"
+          description="Registra servicios, conceptos y genera comprobantes de cobro."
           icon={<FaFileInvoiceDollar />}
           href="/dashboard/billings/invoices"
         />
         <CardBilling
+          title="Ingresos"
+          description="Controla pagos recibidos por clientes y por proyecto."
+          icon={<FaMoneyBillWave />}
+          href="/dashboard/billings/incomes"
+        />
+        <CardBilling
+          title="Pagos por Cliente"
+          description="Registra pagos generales de clientes y distribúyelos entre ingresos."
+          icon={<FaMoneyCheckAlt />}
+          href="/dashboard/billings/payments"
+        />
+        <CardBilling
           title="Pagos a Ingenieros"
           description="Controla los egresos por servicios técnicos y actividades."
-          icon={<FaMoneyCheckAlt />}
+          icon={<FaHandHoldingUsd />}
           href="/dashboard/billings/payments"
         />
         <CardBilling

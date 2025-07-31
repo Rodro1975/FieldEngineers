@@ -15,7 +15,7 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [engineerToEdit, setEngineerToEdit] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(8);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -29,7 +29,7 @@ export default function MostrarIngenieros({ refreshSignal = null }) {
     const updateRowsPerPage = () => {
       const width = window.innerWidth;
       if (width < 768) setRowsPerPage(6);
-      else setRowsPerPage(8);
+      else setRowsPerPage(5);
     };
     updateRowsPerPage();
     window.addEventListener("resize", updateRowsPerPage);
