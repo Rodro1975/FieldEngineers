@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { FaFilePdf, FaEnvelope, FaWhatsapp, FaTrash } from "react-icons/fa";
 import { Toaster, toast } from "react-hot-toast";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import supabase from "@/lib/supabaseClient";
 import { v4 as uuidv4 } from "uuid";
@@ -16,6 +16,8 @@ export default function QuoteGenerator({ onReady }) {
     validity: "",
     notes: "",
     description: "",
+    conditions: "",
+    includeTotal: true,
   });
   const [customValidity, setCustomValidity] = useState("");
   const [folio, setFolio] = useState("CARGANDO...");
@@ -26,7 +28,7 @@ export default function QuoteGenerator({ onReady }) {
       const { data, error } = await supabase
         .from("clients")
         .select("id, contact_name, company_name");
-      if (!error) setClients(data);
+      if (!error) setClients(data || []);
     }
     fetchClients();
   }, []);
@@ -62,9 +64,12 @@ export default function QuoteGenerator({ onReady }) {
     setItems(updated);
   };
 
-  const addItem = () => {
-    setItems([...items, { description: "", amount: "" }]);
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target;
+    setFormData((s) => ({ ...s, [name]: checked }));
   };
+
+  const addItem = () => setItems([...items, { description: "", amount: "" }]);
 
   const removeItem = (index) => {
     if (items.length > 1) {
@@ -74,114 +79,173 @@ export default function QuoteGenerator({ onReady }) {
     }
   };
 
+  // --- Helpers de dinero ---
+  const parseAmount = (v) => {
+    if (typeof v === "number" && isFinite(v)) return v;
+    if (v == null) return 0;
+    // limpia cualquier símbolo y separadores
+    const n = Number(String(v).replace(/[^\d.-]/g, ""));
+    return isNaN(n) ? 0 : n;
+  };
+  const fmt2 = (n) =>
+    parseAmount(n).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
   const generatePDF = useCallback(() => {
     const client =
       formData.client_id === "otro"
         ? { contact_name: formData.custom_client_name, company_name: "" }
         : clients.find((c) => c.id === formData.client_id);
 
-    const pdf = new jsPDF();
+    const pdf = new jsPDF({ unit: "mm", format: "letter", compress: true });
+    const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const totalPages = []; // acumulador para páginas
 
-    const addNewPageIfNeeded = (extraSpace = 20) => {
-      const yNow = pdf.lastAutoTable?.finalY || pdf.previousY || 20;
-      if (yNow + extraSpace > pageHeight - 20) {
+    // Helper: salta de página si no cabe y devuelve el nuevo y
+    const addNewPageIfNeeded = (y, extra = 0) => {
+      const limit = pageHeight - 20; // margen inferior
+      if (y + extra > limit) {
         pdf.addPage();
-        pdf.previousY = 20;
-      } else {
-        pdf.previousY = yNow;
+        // Encabezado simple en páginas siguientes (opcional)
+        pdf.setFontSize(10);
+        pdf.setTextColor(120);
+        pdf.text("COTIZACIÓN (cont.)", 20, 16);
+        pdf.setTextColor(0);
+        return 24; // nuevo y al inicio de la página
       }
+      return y;
     };
 
     // Logo y encabezado
-    pdf.addImage("/LogoYellow.png", "PNG", 140, 10, 50, 20);
+    try {
+      // Ojo: addImage con path directo puede fallar; si no carga, el catch lo ignora
+      pdf.addImage("/LogoYellow.png", "PNG", pageWidth - 70, 10, 50, 20);
+    } catch {}
     pdf.setFontSize(18);
-    pdf.setTextColor("#000000");
+    pdf.setTextColor(0, 0, 0);
     pdf.text("COTIZACIÓN", 20, 40);
     pdf.setFontSize(12);
-    pdf.setTextColor(0, 0, 0);
     pdf.text(`Folio: ${folio}`, 20, 48);
     pdf.text(`Cliente: ${client?.contact_name || ""}`, 20, 56);
     pdf.text(`Empresa: ${client?.company_name || ""}`, 20, 64);
     pdf.text(`Fecha: ${new Date().toLocaleDateString()}`, 20, 72);
 
+    // Descripción
     const descripcionTexto =
       formData.description ||
       "Esta cotización detalla el alcance y costo de los servicios requeridos por el cliente para la solución solicitada.";
     pdf.setFontSize(11);
-    pdf.setTextColor(60, 60, 60);
-    const lines = pdf.splitTextToSize(descripcionTexto, 170);
-    pdf.text(lines, 20, 82);
-    let y = 82 + lines.length * 6;
-    pdf.previousY = y;
+    pdf.setTextColor(60);
+    const descLines = pdf.splitTextToSize(descripcionTexto, pageWidth - 40);
+    const lineH = 6;
+    pdf.text(descLines, 20, 82);
+    let y = 82 + descLines.length * lineH;
 
+    // Tabla de ítems (autoTable maneja saltos internos)
     autoTable(pdf, {
       startY: y,
       head: [["Descripción", "Monto"]],
       body: items.map((item) => [
         item.description,
-        `${formData.currency} $${item.amount}`,
+        `${formData.currency} $${fmt2(item.amount)}`,
       ]),
-      styles: { fontSize: 10 },
+      styles: { fontSize: 10, cellPadding: 2 },
       headStyles: {
         fillColor: [248, 212, 50],
         textColor: [0, 0, 0],
       },
       margin: { left: 20, right: 20 },
+      tableWidth: pageWidth - 40,
     });
-    y = pdf.lastAutoTable.finalY + 10;
+    y = (pdf.lastAutoTable?.finalY || y) + 10;
 
-    // Notas
-    addNewPageIfNeeded();
-    pdf.setFontSize(11);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text("Notas adicionales:", 20, y);
-    y += 6;
-
-    const notaLines = pdf.splitTextToSize(formData.notes || "Sin notas", 170);
-    pdf.setFontSize(10);
-    notaLines.forEach((line) => {
-      addNewPageIfNeeded(6);
-      pdf.text(line, 20, y);
+    // ---- Condiciones (primero) ----
+    if ((formData.conditions || "").trim()) {
+      pdf.setFontSize(11);
+      pdf.setTextColor(0);
+      y = addNewPageIfNeeded(y, 6);
+      pdf.setFont("times", "bold"); // *** NEGRITA ***
+      pdf.text("Condiciones:", 20, y);
+      pdf.setFont("times", "normal");
       y += 6;
-    });
 
-    // Total
-    const total = items.reduce((acc, i) => acc + Number(i.amount), 0);
-    addNewPageIfNeeded(10);
-    pdf.setFontSize(11);
-    pdf.setTextColor("#000000");
-    pdf.text(`Total: ${formData.currency} $${total.toFixed(2)}`, 20, y);
-    y += 10;
+      const condLines = pdf.splitTextToSize(
+        formData.conditions,
+        pageWidth - 40
+      );
+      pdf.setFontSize(10);
+      for (const line of condLines) {
+        y = addNewPageIfNeeded(y, lineH);
+        pdf.text(line, 20, y);
+        y += lineH;
+      }
+      y += 4; // salto extra para que no se pegue a "Notas"
+    }
 
-    // Aclaraciones legales
-    pdf.setFontSize(9);
-    pdf.setTextColor(80, 80, 80);
-    addNewPageIfNeeded(8);
-    pdf.text(
-      "* Los valores presentados son netos. No incluyen IVA ni impuestos locales o internacionales aplicables.",
-      20,
-      y
-    );
-    y += 8;
+    // ---- Notas adicionales (después) ----
+    if ((formData.notes || "").trim()) {
+      pdf.setFontSize(11);
+      pdf.setTextColor(0);
+      y = addNewPageIfNeeded(y, 6);
+      pdf.setFont("times", "bold"); // *** NEGRITA ***
+      pdf.text("Notas adicionales:", 20, y);
+      pdf.setFont("times", "normal");
+      y += 6;
 
-    if (formData.currency === "USD") {
-      addNewPageIfNeeded(8);
+      const notaLines = pdf.splitTextToSize(formData.notes, pageWidth - 40);
+      pdf.setFontSize(10);
+      for (const line of notaLines) {
+        y = addNewPageIfNeeded(y, lineH);
+        pdf.text(line, 20, y);
+        y += lineH;
+      }
+    }
+
+    // ---- Total (solo si includeTotal === true) ----
+    if (formData.includeTotal) {
+      const total = items.reduce((acc, i) => acc + parseAmount(i.amount), 0);
+      pdf.setFontSize(11);
+      pdf.setTextColor(0);
+      y = addNewPageIfNeeded(y, 10);
+      pdf.text(`Total: ${formData.currency} $${fmt2(total)}`, 20, y);
+      y += 10;
+    } else {
+      pdf.setFontSize(10);
+      pdf.setTextColor(100);
+      y = addNewPageIfNeeded(y, 8);
       pdf.text(
-        "* Esta cotización tiene una vigencia de 15 días y está sujeta a la TRM vigente al día de pago.",
+        "Esta cotización presenta opciones; el total se definirá tras elegir una.",
         20,
         y
       );
       y += 8;
     }
 
+    // Aclaraciones legales
+    pdf.setFontSize(9);
+    pdf.setTextColor(80);
+    const legal1 =
+      "* Los valores presentados son netos. No incluyen IVA ni impuestos locales o internacionales aplicables.";
+    y = addNewPageIfNeeded(y, 8);
+    pdf.text(legal1, 20, y);
+    y += 8;
+
+    if (formData.currency === "USD") {
+      const legal2 =
+        "* Esta cotización tiene una vigencia de 15 días y está sujeta a la TRM vigente al día de pago.";
+      y = addNewPageIfNeeded(y, 8);
+      pdf.text(legal2, 20, y);
+      y += 8;
+    }
+
     // Firma
-    addNewPageIfNeeded(28);
-    pdf.setTextColor("#f8d432");
+    y = addNewPageIfNeeded(y, 28);
+    pdf.setTextColor(248, 212, 50);
     pdf.setFontSize(11);
     pdf.text("Rodrigo Iván Ordóñez Chávez", 20, y);
-    pdf.setTextColor(0, 0, 0);
+    pdf.setTextColor(0);
     pdf.setFontSize(10);
     pdf.text("rodrigoivanordonezchavez@gmail.com", 20, y + 6);
     pdf.textWithLink("WhatsApp: +57 302 228 3964", 20, y + 12, {
@@ -192,16 +256,21 @@ export default function QuoteGenerator({ onReady }) {
     pdf.textWithLink("Soporte Técnico y Soluciones Tecnológicas", 20, y + 20, {
       url: "https://soporte-t-cnico-y-solucion-git-e46f24-rodrigo-ordonezs-projects.vercel.app/",
     });
-    pdf.setTextColor(80, 80, 80);
+    pdf.setTextColor(80);
 
-    // Número de página
+    // Numeración de páginas
     const pageCount = pdf.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i);
       pdf.setFontSize(9);
       pdf.setTextColor(150);
-      pdf.text(`Página ${i} de ${pageCount}`, 180, pageHeight - 10);
+      pdf.text(`Página ${i} de ${pageCount}`, pageWidth - 20, pageHeight - 10, {
+        align: "right",
+      });
     }
+
+    // Debug: mira en consola el total de páginas
+    console.log("Páginas generadas:", pageCount);
 
     return pdf;
   }, [clients, formData, folio, items]);
@@ -212,14 +281,26 @@ export default function QuoteGenerator({ onReady }) {
       return;
     }
     const pdf = generatePDF();
-    window.open(pdf.output("bloburl"), "_blank");
+    // evita problemas de algunos viewers con bloburl
+    pdf.output("dataurlnewwindow");
   }, [formData, items, generatePDF]);
 
   useEffect(() => {
     if (onReady) onReady({ handlePreview });
   }, [onReady, handlePreview]);
 
-  // handleDownload se mantiene igual...
+  // arma un string de notas para la BD, evitando "undefined"
+  const dbNotes =
+    [
+      formData.notes?.trim(),
+      formData.conditions?.trim() &&
+        `Condiciones: ${formData.conditions.trim()}`,
+      formData.client_id === "otro" &&
+        `Cliente provisional: ${formData.custom_client_name}`,
+      !formData.includeTotal && "Cotización sin total (opciones)",
+    ]
+      .filter(Boolean)
+      .join(" | ") || null; // usa null si quedó vacío
 
   const handleDownload = async () => {
     try {
@@ -233,11 +314,9 @@ export default function QuoteGenerator({ onReady }) {
         return;
       }
 
-      // Generar el PDF y obtenerlo como Blob
       const pdf = generatePDF();
-      const pdfBlob = pdf.output("blob"); // Usa "blob" directamente
+      const pdfBlob = pdf.output("blob");
 
-      // Obtener sesión de usuario
       const { data: sessionData, error: sessionError } =
         await supabase.auth.getSession();
       if (sessionError) {
@@ -254,7 +333,6 @@ export default function QuoteGenerator({ onReady }) {
       const fileName = `${folio}-${uuidv4()}.pdf`;
       const filePath = `${user_id}/${fileName}`;
 
-      // Subir el archivo PDF a Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from("quotes-pdfs")
         .upload(filePath, pdfBlob, {
@@ -268,7 +346,6 @@ export default function QuoteGenerator({ onReady }) {
         return;
       }
 
-      // Crear URL firmada
       const { data: urlData, error: urlError } = await supabase.storage
         .from("quotes-pdfs")
         .createSignedUrl(filePath, 60 * 60 * 24 * 7);
@@ -281,7 +358,6 @@ export default function QuoteGenerator({ onReady }) {
 
       const total = items.reduce((acc, i) => acc + Number(i.amount), 0);
 
-      // Insertar la cotización en la base de datos
       const { error: insertError } = await supabase.from("quotes").insert([
         {
           user_id,
@@ -292,11 +368,7 @@ export default function QuoteGenerator({ onReady }) {
           currency: formData.currency,
           validity:
             formData.validity === "otra" ? customValidity : formData.validity,
-          notes:
-            formData.notes +
-            (formData.client_id === "otro"
-              ? ` | Cliente provisional: ${formData.custom_client_name}`
-              : ""),
+          notes: dbNotes,
           pdf_url: urlData.signedUrl,
           country: formData.country,
           description: formData.description,
@@ -376,6 +448,22 @@ export default function QuoteGenerator({ onReady }) {
           )}
         </div>
 
+        {/* Control de total */}
+        <div className="sm:col-span-2">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="includeTotal"
+              checked={formData.includeTotal}
+              onChange={handleCheckboxChange}
+            />
+            Incluir total en esta cotización
+          </label>
+          <p className="text-xs text-gray-500">
+            Desmarca si esta cotización solo presenta opciones (no suma total).
+          </p>
+        </div>
+
         {/* Ítems dinámicos */}
         <div className="sm:col-span-2">
           <label className="block font-medium">Ítems de la cotización</label>
@@ -424,8 +512,7 @@ export default function QuoteGenerator({ onReady }) {
             onChange={handleChange}
             className="w-full border px-3 py-2 rounded"
           >
-            <option value="">Selecciona un tipo de moneda</option>{" "}
-            {/* 🔹 Opción por defecto */}
+            <option value="">Selecciona un tipo de moneda</option>
             <option value="USD">USD</option>
             <option value="COP">COP</option>
             <option value="MXN">MXN</option>
@@ -456,7 +543,20 @@ export default function QuoteGenerator({ onReady }) {
           )}
         </div>
 
-        {/* Notas */}
+        {/* Condiciones */}
+        <div className="sm:col-span-2">
+          <label className="block font-medium">Condiciones</label>
+          <textarea
+            name="conditions"
+            value={formData.conditions}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+            rows={4}
+            placeholder="Tiempos de entrega, vigencia, garantías, alcances, etc."
+          />
+        </div>
+
+        {/* Notas Adicionales*/}
         <div className="sm:col-span-2">
           <label className="block font-medium">Notas adicionales</label>
           <textarea

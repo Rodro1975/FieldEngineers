@@ -40,10 +40,10 @@ export default function Sidebar({ userEmail }) {
           <FaRegCalendarAlt /> Agenda
         </Link>
         <Link
-          href="/dashboard/engineers"
+          href="/dashboard/assignments"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
-          <FaUsers /> Ingenieros
+          <FaTasks /> Asignaciones
         </Link>
         <Link
           href="/dashboard/clients"
@@ -52,29 +52,39 @@ export default function Sidebar({ userEmail }) {
           <FaPerson /> Clientes
         </Link>
         <Link
+          href="/dashboard/billings"
+          className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
+        >
+          <FaCommentDollar /> Contabilidad
+        </Link>
+        <Link
+          href="/dashboard/docs"
+          className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
+        >
+          <FaFileAlt /> Documentación
+        </Link>
+
+        <Link
+          href="/dashboard/engineers"
+          className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
+        >
+          <FaUsers /> Ingenieros
+        </Link>
+
+        <Link
           href="/dashboard/projects"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaProjectDiagram /> Proyectos
         </Link>
-        <Link
-          href="/dashboard/assignments"
-          className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
-        >
-          <FaTasks /> Asignaciones
-        </Link>
+
         <Link
           href="/dashboard/reports"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
           <FaFileAlt /> Reportes
         </Link>
-        <Link
-          href="/dashboard/billings"
-          className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
-        >
-          <FaCommentDollar /> Contabilidad
-        </Link>
+
         <Link
           href="/settings"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
