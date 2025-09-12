@@ -13,6 +13,7 @@ import {
   FaSignOutAlt,
   FaCommentDollar,
   FaRegCalendarAlt,
+  FaCalculator,
 } from "react-icons/fa";
 import { FaPerson } from "react-icons/fa6";
 
@@ -55,7 +56,13 @@ export default function Sidebar({ userEmail }) {
           href="/dashboard/billings"
           className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
         >
-          <FaCommentDollar /> Contabilidad
+          <FaCalculator /> Contabilidad
+        </Link>
+        <Link
+          href="/dashboard/quotes"
+          className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full text-left"
+        >
+          <FaCommentDollar /> Cotizaciones
         </Link>
         <Link
           href="/dashboard/docs"

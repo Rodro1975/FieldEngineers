@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState, useCallback } from "react";
 import { FaFilePdf, FaEnvelope, FaWhatsapp, FaTrash } from "react-icons/fa";
 import { Toaster, toast } from "react-hot-toast";
@@ -5,6 +7,20 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import supabase from "@/lib/supabaseClient";
 import { v4 as uuidv4 } from "uuid";
+
+// --- Helpers de dinero (fuera del componente) ---
+const parseAmount = (v) => {
+  if (typeof v === "number" && isFinite(v)) return v;
+  if (v == null) return 0;
+  // limpia cualquier símbolo y separadores
+  const n = Number(String(v).replace(/[^\d.-]/g, ""));
+  return isNaN(n) ? 0 : n;
+};
+const fmt2 = (n) =>
+  parseAmount(n).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 export default function QuoteGenerator({ onReady }) {
   const [clients, setClients] = useState([]);
@@ -78,20 +94,6 @@ export default function QuoteGenerator({ onReady }) {
       setItems(updated);
     }
   };
-
-  // --- Helpers de dinero ---
-  const parseAmount = (v) => {
-    if (typeof v === "number" && isFinite(v)) return v;
-    if (v == null) return 0;
-    // limpia cualquier símbolo y separadores
-    const n = Number(String(v).replace(/[^\d.-]/g, ""));
-    return isNaN(n) ? 0 : n;
-  };
-  const fmt2 = (n) =>
-    parseAmount(n).toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
 
   const generatePDF = useCallback(() => {
     const client =

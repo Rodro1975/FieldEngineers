@@ -5,29 +5,29 @@ import { useHeader } from "@/context/HeaderContext";
 import { FaEye } from "react-icons/fa";
 import QuoteGenerator from "@/components/QuoteGenerator";
 
-export default function QuotesPage() {
+export default function QuotesByItemsPage() {
   const { setHeader } = useHeader();
-  const [previewCallback, setPreviewCallback] = useState(null);
+  const [previewCb, setPreviewCb] = useState(null); // { handlePreview }
 
   useEffect(() => {
     setHeader({
-      title: "Cotizaciones",
-      subtitle: "Genera documentos profesionales para tus clientes.",
-      actions: previewCallback
+      title: "Cotización por ítems",
+      subtitle: "Arma tu propuesta con conceptos, totales y condiciones.",
+      actions: previewCb?.handlePreview
         ? [
             {
               label: "Vista previa",
               icon: FaEye,
-              onClick: previewCallback.handlePreview,
+              onClick: previewCb.handlePreview,
             },
           ]
         : [],
     });
-  }, [setHeader, previewCallback]);
+  }, [setHeader, previewCb]);
 
   return (
     <div className="p-4">
-      <QuoteGenerator onReady={setPreviewCallback} />
+      <QuoteGenerator onReady={setPreviewCb} />
     </div>
   );
 }
